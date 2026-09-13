@@ -1,0 +1,40 @@
+src/app/problems/page.tsx
+  s_a0f5e61315c163::t_fc4b620a016276 14,20-26,28,33,104-105
+  s_a0f5e61315c163::t_19abcc0b0ea706 106
+src/lib/api/config.ts
+  s_a0f5e61315c163::t_43892521f4278d 7,9
+src/app/assessments/page.tsx
+  s_a0f5e61315c163::t_fc4b620a016276 14,26,30,38,69,94-95
+  s_a0f5e61315c163::t_c2687c7e168e49 18
+  s_a0f5e61315c163::t_3ce29aa51d6cfd 96
+src/app/results/page.tsx
+  s_a0f5e61315c163::t_af3cdd46ac5907 25-26,58,62
+.env.example
+  s_a0f5e61315c163::t_b3001c19207ce6 6-7
+src/app/exam/page.tsx
+  s_a0f5e61315c163::t_81bde9991ed108 4,23-37,83-89,92-104,130-150
+src/app/generation/page.tsx
+  s_a0f5e61315c163::t_fc4b620a016276 13-14,17-20,39-42,45,66-78
+  s_a0f5e61315c163::t_08c7e05bc66a0c 79
+src/lib/api/services.ts
+  s_a0f5e61315c163::t_43892521f4278d 5-6,10,12,17-19,21,25-31,36-37,39,43-51,55,59,64,68-89
+src/lib/api/types.ts
+  s_a0f5e61315c163::t_43892521f4278d 16-17,20,22-26,37-38,54-57,64-76,80-87,89,96-97,100-101,104,107-111
+  s_a0f5e61315c163::t_af3cdd46ac5907 40,43,46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d23055a8a9a6cef8893db5dd4fc0da6f4643e361",
+  "prompts": {},
+  "sessions": {
+    "s_a0f5e61315c163": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a00a94-9263-7ad2-a655-a4bdf68350a5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    }
+  }
+}
