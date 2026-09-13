@@ -4,7 +4,7 @@ export const serviceUrls = {
   problem: process.env.NEXT_PUBLIC_PROBLEM_SERVICE_URL ?? "http://localhost:8083",
   submission: process.env.NEXT_PUBLIC_SUBMISSION_SERVICE_URL ?? "http://localhost:8084",
   evaluation: process.env.NEXT_PUBLIC_EVALUATION_SERVICE_URL ?? "http://localhost:8085",
+  runner: process.env.NEXT_PUBLIC_ASSESSMENT_RUNNER_SERVICE_URL ?? "http://localhost:8086",
   generation:
-    process.env.NEXT_PUBLIC_PROBLEM_GENERATION_SERVICE_URL ?? "http://localhost:8086",
-  runner: process.env.NEXT_PUBLIC_ASSESSMENT_RUNNER_SERVICE_URL ?? "http://localhost:8087",
+    process.env.NEXT_PUBLIC_PROBLEM_GENERATION_SERVICE_URL ?? "http://localhost:8087",
 };

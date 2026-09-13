@@ -22,6 +22,8 @@ export default function ResultsPage() {
     enabled: Boolean(activeId),
   });
   const evaluation = evaluationQuery.data ?? mockEvaluation;
+  const score = evaluation.scored_marks ?? evaluation.score;
+  const total = evaluation.total_marks;
 
   return (
     <AppShell>
@@ -53,11 +55,11 @@ export default function ResultsPage() {
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <div className="border border-[var(--line)] bg-white p-3">
               <p className="text-xs text-[var(--muted)]">Scored</p>
-              <p className="text-2xl font-bold">{evaluation.scored_marks ?? "—"}</p>
+              <p className="text-2xl font-bold">{score ?? "—"}</p>
             </div>
             <div className="border border-[var(--line)] bg-white p-3">
               <p className="text-xs text-[var(--muted)]">Total</p>
-              <p className="text-2xl font-bold">{evaluation.total_marks ?? "—"}</p>
+              <p className="text-2xl font-bold">{total ?? "—"}</p>
             </div>
             <div className="border border-[var(--line)] bg-white p-3">
               <p className="text-xs text-[var(--muted)]">Questions</p>

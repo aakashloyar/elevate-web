@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { AppShell, Badge, Button, EmptyState, Panel, PageTitle } from "@/components/ui";
 import { StatusBadge } from "@/components/status";
 import { runnerApi, submissionsApi } from "@/lib/api/services";
@@ -19,6 +19,21 @@ export default function ExamPage() {
   const statusQuery = useQuery({
     queryKey: ["submission-status", attemptId],
     queryFn: () => submissionsApi.status(attemptId),
+  });
+  const saveBatch = useMutation({
+    mutationFn: () =>
+      submissionsApi.saveAnswerBatch(
+        attemptId,
+        Object.entries(answers).map(([problem_id, answer]) => ({ problem_id, answer })),
+      ),
+  });
+  const startSubmission = useMutation({
+    mutationFn: () => submissionsApi.start(attemptId),
+    onSuccess: () => void statusQuery.refetch(),
+  });
+  const submitSubmission = useMutation({
+    mutationFn: () => submissionsApi.submit(attemptId),
+    onSuccess: () => void statusQuery.refetch(),
   });
 
   const rawProblems = Array.isArray(problemsQuery.data)
@@ -65,7 +80,27 @@ export default function ExamPage() {
           {statusQuery.data ? <StatusBadge value={statusQuery.data.status} /> : <Badge>mock/inactive</Badge>}
           <span className="text-[var(--muted)]">Expires: {statusQuery.data?.expires_at ?? "—"}</span>
         </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => startSubmission.mutate()} disabled={startSubmission.isPending}>Start</Button>
+          <Button variant="secondary" onClick={() => saveBatch.mutate()} disabled={saveBatch.isPending || Object.keys(answers).length === 0}>
+            {saveBatch.isPending ? "Saving..." : "Save drafts"}
+          </Button>
+          <Button onClick={() => submitSubmission.mutate()} disabled={submitSubmission.isPending}>Submit</Button>
+        </div>
       </div>
+
+      {saveBatch.data ? (
+        <div className="mb-4 card p-3 text-sm">
+          <p className="font-semibold">Saved {saveBatch.data.saved_count} answer(s)</p>
+          {saveBatch.data.errors.length ? (
+            <ul className="mt-2 list-disc pl-5 text-[var(--danger)]">
+              {saveBatch.data.errors.map((error) => (
+                <li key={`${error.problem_id}-${error.message}`}>{error.problem_id}: {error.message}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
         <Panel title="Questions">
@@ -92,18 +127,27 @@ export default function ExamPage() {
                 <Badge>{current.difficulty}</Badge>
               </div>
               <p className="mb-5 whitespace-pre-wrap leading-7">{current.statement}</p>
-              <div className="grid gap-2">
-                {current.options?.map((option, index) => (
-                  <button
-                    key={option.id ?? option.text}
-                    onClick={() => toggle(option.id ?? option.text)}
-                    className={`flex items-start gap-3 border p-3 text-left text-sm ${selected.includes(option.id ?? option.text) ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
-                  >
-                    <span className="font-bold">{String.fromCharCode(65 + index)}.</span>
-                    <span>{option.text}</span>
-                  </button>
-                ))}
-              </div>
+              {current.type === "numerical" ? (
+                <input
+                  className="w-full rounded border border-[var(--line)] bg-white px-3 py-2 text-sm"
+                  value={selected[0] ?? ""}
+                  onChange={(event) => setAnswers((prev) => ({ ...prev, [current.id]: [event.target.value] }))}
+                  placeholder="Enter numerical answer"
+                />
+              ) : (
+                <div className="grid gap-2">
+                  {current.options?.map((option, index) => (
+                    <button
+                      key={option.id ?? option.text}
+                      onClick={() => toggle(option.id ?? option.text)}
+                      className={`flex items-start gap-3 border p-3 text-left text-sm ${selected.includes(option.id ?? option.text) ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
+                    >
+                      <span className="font-bold">{String.fromCharCode(65 + index)}.</span>
+                      <span>{option.text}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="mt-5 flex justify-between">
                 <Button variant="secondary" disabled={currentIndex === 0} onClick={() => setCurrentIndex((value) => value - 1)}>Previous</Button>
                 <Button disabled={currentIndex === problems.length - 1} onClick={() => setCurrentIndex((value) => value + 1)}>Next</Button>

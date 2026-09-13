@@ -10,10 +10,14 @@ import type { Difficulty } from "@/lib/api/types";
 
 function GenerationContent() {
   const params = useSearchParams();
-  const [assessmentId, setAssessmentId] = useState(params.get("assessmentId") ?? "A101");
-  const [userId, setUserId] = useState("admin");
+  const [assessmentId, setAssessmentId] = useState(params.get("assessmentId") ?? "f207db6a-c9bc-4743-96f3-56028ec6cfa2");
+  const [userId, setUserId] = useState("019fd16d-8296-7039-949f-65044c31d28f");
   const [level, setLevel] = useState<Difficulty>("medium");
   const [description, setDescription] = useState("Generate NCERT-style conceptual questions.");
+  const [singleCount, setSingleCount] = useState("5");
+  const [multiCount, setMultiCount] = useState("3");
+  const [numericalCount, setNumericalCount] = useState("2");
+  const [topicIds, setTopicIds] = useState("binary-search, arrays");
   const [jobId, setJobId] = useState("");
 
   const createJob = useMutation({
@@ -32,12 +36,13 @@ function GenerationContent() {
     createJob.mutate({
       user_id: userId,
       assessment_id: assessmentId,
-      single_correct_count: 5,
-      multi_correct_count: 3,
-      numerical_count: 2,
+      document_id: null,
+      single_correct_count: Number(singleCount),
+      multi_correct_count: Number(multiCount),
+      numerical_count: Number(numericalCount),
       level,
       description,
-      topic_ids: [],
+      topic_ids: topicIds.split(",").map((topic) => topic.trim()).filter(Boolean),
     });
   }
 
@@ -57,6 +62,20 @@ function GenerationContent() {
               <option value="medium">medium</option>
               <option value="hard">hard</option>
             </select>
+          </Field>
+          <div className="grid grid-cols-3 gap-2">
+            <Field label="Single">
+              <input className={inputClass} type="number" min={0} value={singleCount} onChange={(event) => setSingleCount(event.target.value)} />
+            </Field>
+            <Field label="Multi">
+              <input className={inputClass} type="number" min={0} value={multiCount} onChange={(event) => setMultiCount(event.target.value)} />
+            </Field>
+            <Field label="Numerical">
+              <input className={inputClass} type="number" min={0} value={numericalCount} onChange={(event) => setNumericalCount(event.target.value)} />
+            </Field>
+          </div>
+          <Field label="Topic IDs">
+            <input className={inputClass} value={topicIds} onChange={(event) => setTopicIds(event.target.value)} placeholder="binary-search, arrays" />
           </Field>
           <Field label="Description">
             <textarea className={inputClass} rows={5} value={description} onChange={(event) => setDescription(event.target.value)} />

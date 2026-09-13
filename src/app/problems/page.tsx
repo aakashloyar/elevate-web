@@ -11,20 +11,26 @@ export default function ProblemsPage() {
   const [type, setType] = useState<ProblemType>("single");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [statement, setStatement] = useState("");
+  const [createdBy, setCreatedBy] = useState("019fd16d-8296-7039-949f-65044c31d28f");
 
   const problemsQuery = useQuery({
     queryKey: ["problems"],
     queryFn: () => problemsApi.list({ offset: 0, limit: 20 }),
   });
-  const createProblem = useMutation({ mutationFn: problemsApi.create });
+  const createProblem = useMutation({
+    mutationFn: problemsApi.create,
+    onSuccess: () => {
+      setStatement("");
+      void problemsQuery.refetch();
+    },
+  });
 
-  const data = problemsQuery.data;
-  const problems = Array.isArray(data) ? data : data?.problems ?? mockProblems;
+  const problems = problemsQuery.data?.problems ?? mockProblems;
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     createProblem.mutate({
-      created_by: "admin",
+      created_by: createdBy,
       title: statement.slice(0, 48),
       statement,
       type,
@@ -94,6 +100,9 @@ export default function ProblemsPage() {
             </Field>
             <Field label="Statement">
               <textarea className={inputClass} rows={6} value={statement} onChange={(event) => setStatement(event.target.value)} placeholder="Write the question statement..." required />
+            </Field>
+            <Field label="Created by user ID">
+              <input className={inputClass} value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} required />
             </Field>
             <Button disabled={createProblem.isPending}>{createProblem.isPending ? "Saving..." : "Save problem"}</Button>
           </form>

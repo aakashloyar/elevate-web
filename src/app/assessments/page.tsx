@@ -11,10 +11,11 @@ export default function AssessmentsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("90");
+  const [createdBy, setCreatedBy] = useState("019fd16d-8296-7039-949f-65044c31d28f");
 
   const assessmentsQuery = useQuery({
     queryKey: ["assessments"],
-    queryFn: assessmentsApi.list,
+    queryFn: () => assessmentsApi.list(),
   });
 
   const createAssessment = useMutation({
@@ -22,12 +23,11 @@ export default function AssessmentsPage() {
     onSuccess: () => {
       setTitle("");
       setDescription("");
+      void assessmentsQuery.refetch();
     },
   });
 
-  const assessments = Array.isArray(assessmentsQuery.data)
-    ? assessmentsQuery.data
-    : mockAssessments;
+  const assessments = assessmentsQuery.data?.assessments ?? mockAssessments;
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -35,6 +35,7 @@ export default function AssessmentsPage() {
       title,
       description,
       duration_seconds: Number(duration) * 60,
+      created_by: createdBy,
     });
   }
 
@@ -65,7 +66,7 @@ export default function AssessmentsPage() {
                   {assessments.map((assessment) => (
                     <tr key={assessment.id} className="border-b border-[var(--line)] last:border-0">
                       <td className="py-3 pr-4">
-                        <p className="font-semibold">{assessment.title ?? assessment.name ?? assessment.id}</p>
+                        <p className="font-semibold">{assessment.title ?? assessment.id}</p>
                         <p className="text-xs text-[var(--muted)]">{assessment.description ?? "No description"}</p>
                       </td>
                       <td className="py-3 pr-4">{minutesFromSeconds(assessment.duration_seconds)}</td>
@@ -89,6 +90,9 @@ export default function AssessmentsPage() {
             </Field>
             <Field label="Duration minutes">
               <input className={inputClass} type="number" value={duration} onChange={(event) => setDuration(event.target.value)} min={1} />
+            </Field>
+            <Field label="Created by user ID">
+              <input className={inputClass} value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} required />
             </Field>
             <Button disabled={createAssessment.isPending}>{createAssessment.isPending ? "Creating..." : "Create assessment"}</Button>
             {createAssessment.error ? <p className="text-sm text-[var(--danger)]">Backend not reachable or request shape changed.</p> : null}
