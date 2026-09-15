@@ -58,12 +58,11 @@ export default function AssessmentDetailPage() {
         description={assessment?.description || "Review this assessment and attach manual or AI-generated problems."}
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="grid gap-4">
-          <Panel
-            title="Assessment info"
-            action={<Link className="link" href="/assessments">Back to assessments</Link>}
-          >
+      <div className="grid gap-4">
+        <Panel
+          title="Assessment info"
+          action={<Link className="link" href="/assessments">Back to assessments</Link>}
+        >
             {assessmentQuery.isLoading ? (
               <p className="text-sm text-[var(--muted)]">Loading assessment...</p>
             ) : assessmentQuery.error ? (
@@ -78,8 +77,9 @@ export default function AssessmentDetailPage() {
                 <Info label="Updated at" value={formatDateTime(assessment.updated_at)} />
               </div>
             ) : null}
-          </Panel>
+        </Panel>
 
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
           <Panel title="Attached problems">
             {problemIdsQuery.isLoading || problemsQuery.isLoading ? (
               <p className="text-sm text-[var(--muted)]">Loading problems...</p>
@@ -93,37 +93,37 @@ export default function AssessmentDetailPage() {
               </div>
             )}
           </Panel>
-        </div>
 
-        <div className="grid content-start gap-4">
-          <Panel title="Add problems">
-            <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant={mode === "manual" ? "primary" : "secondary"} onClick={() => setMode("manual")}>
-                Manual
-              </Button>
-              <Button type="button" variant={mode === "ai" ? "primary" : "secondary"} onClick={() => setMode("ai")}>
-                AI generation
-              </Button>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              Manual adds one ready problem immediately. AI creates a generation job linked to this assessment.
-            </p>
-          </Panel>
+          <div className="grid content-start gap-4">
+            <Panel title="Add problems">
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant={mode === "manual" ? "primary" : "secondary"} onClick={() => setMode("manual")}>
+                  Manual
+                </Button>
+                <Button type="button" variant={mode === "ai" ? "primary" : "secondary"} onClick={() => setMode("ai")}>
+                  AI generation
+                </Button>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                Manual adds one ready problem immediately. AI creates a generation job linked to this assessment.
+              </p>
+            </Panel>
 
-          {mode === "manual" ? (
-            <ManualProblemCard
-              key={`manual-${assessment?.created_by ?? "loading"}`}
-              assessmentId={assessmentId}
-              createdBy={assessment?.created_by}
-              onAdded={refreshProblems}
-            />
-          ) : (
-            <AiGenerationCard
-              key={`ai-${assessment?.created_by ?? "loading"}`}
-              assessmentId={assessmentId}
-              createdBy={assessment?.created_by}
-            />
-          )}
+            {mode === "manual" ? (
+              <ManualProblemCard
+                key={`manual-${assessment?.created_by ?? "loading"}`}
+                assessmentId={assessmentId}
+                createdBy={assessment?.created_by}
+                onAdded={refreshProblems}
+              />
+            ) : (
+              <AiGenerationCard
+                key={`ai-${assessment?.created_by ?? "loading"}`}
+                assessmentId={assessmentId}
+                createdBy={assessment?.created_by}
+              />
+            )}
+          </div>
         </div>
       </div>
     </AppShell>
