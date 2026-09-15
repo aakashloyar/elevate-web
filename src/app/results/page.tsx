@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AppShell, Badge, Button, Field, inputClass, Panel, PageTitle } from "@/components/ui";
+import { AppShell, Badge, Button, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
 import { StatusBadge } from "@/components/status";
 import { evaluationApi, submissionsApi } from "@/lib/api/services";
 import { mockEvaluation } from "@/lib/mock-data";
@@ -77,7 +77,7 @@ export default function ResultsPage() {
             <tbody>
               {evaluation.questions?.map((question) => (
                 <tr key={question.problem_id} className="border-b border-[var(--line)] last:border-0">
-                  <td className="py-2 pr-3 font-medium">{question.problem_id}</td>
+                    <td className="max-w-0 py-2 pr-3 font-medium"><TruncatedText>{question.problem_id}</TruncatedText></td>
                   <td className="py-2 pr-3"><StatusBadge value={question.status} /></td>
                   <td className="py-2">{question.marks}</td>
                 </tr>

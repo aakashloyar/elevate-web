@@ -1,31 +1,61 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { AppShell, Badge, Button, EmptyState, Field, inputClass, Panel, PageTitle } from "@/components/ui";
+import { useMutation } from "@tanstack/react-query";
+import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { AppShell, Badge, Button, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
 import { problemsApi } from "@/lib/api/services";
 import type { Difficulty, Problem, ProblemType } from "@/lib/api/types";
-import { mockProblems } from "@/lib/mock-data";
+
+const pageSize = 10;
 
 export default function ProblemsPage() {
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [type, setType] = useState<ProblemType>("single");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
   const [statement, setStatement] = useState("");
   const [createdBy, setCreatedBy] = useState("019fd16d-8296-7039-949f-65044c31d28f");
 
-  const problemsQuery = useQuery({
-    queryKey: ["problems"],
-    queryFn: () => problemsApi.list({ offset: 0, limit: 20 }),
-  });
   const createProblem = useMutation({
     mutationFn: problemsApi.create,
     onSuccess: () => {
       setStatement("");
-      void problemsQuery.refetch();
+      setShowCreateForm(false);
     },
   });
 
-  const problems = problemsQuery.data?.problems ?? mockProblems;
+  const columns: DataTableColumn<Problem>[] = [
+    {
+      key: "problem",
+      header: "Problem",
+      render: (problem) => (
+        <div>
+          <TruncatedText className="font-semibold">{problem.title || problem.id}</TruncatedText>
+          <TruncatedText className="mt-1 max-w-3xl text-sm leading-6 text-neutral-800" lines={2}>{problem.statement || "Open problem details to view full statement."}</TruncatedText>
+          {problem.tags?.length ? (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {problem.tags.map((tag) => <span key={tag} className="text-xs text-[var(--muted)]">#{tag}</span>)}
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: "type",
+      header: "Type",
+      render: (problem) => <Badge tone="blue">{problem.type}</Badge>,
+    },
+    {
+      key: "difficulty",
+      header: "Difficulty",
+      render: (problem) => <Badge>{problem.difficulty}</Badge>,
+    },
+    {
+      key: "source",
+      header: "Source",
+      render: (problem) => <Badge tone={problem.source_type === "ai" ? "yellow" : "neutral"}>{problem.source_type || "—"}</Badge>,
+    },
+  ];
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -49,39 +79,27 @@ export default function ProblemsPage() {
       <PageTitle
         eyebrow="Problem bank"
         title="Problems should read like textbook exercises"
-        description="Compact CSES-style listing with type, difficulty, source, and tags visible at a glance."
+        description="Search and page through backend problems in a simple Codeforces-style table."
       />
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <Panel title="Problem list">
-          {problems.length === 0 ? (
-            <EmptyState title="No problems found" description="Create manually or generate from an assessment." />
-          ) : (
-            <div className="space-y-3">
-              {problems.map((problem: Problem) => (
-                <article key={problem.id} className="border border-[var(--line)] bg-white p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{problem.title || problem.id}</p>
-                      <p className="mt-1 text-sm leading-6 text-neutral-800">{problem.statement}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Badge tone="blue">{problem.type}</Badge>
-                      <Badge>{problem.difficulty}</Badge>
-                      <Badge tone={problem.source_type === "ai" ? "yellow" : "neutral"}>{problem.source_type}</Badge>
-                    </div>
-                  </div>
-                  {problem.tags?.length ? (
-                    <div className="mt-3 flex flex-wrap gap-1">
-                      {problem.tags.map((tag) => <span key={tag} className="text-xs text-[var(--muted)]">#{tag}</span>)}
-                    </div>
-                  ) : null}
-                </article>
-              ))}
-            </div>
-          )}
-        </Panel>
+      <div className="grid gap-4">
+        <DataTable
+          title="Problem list"
+          searchPlaceholder="Search by title"
+          pageSize={pageSize}
+          columns={columns}
+          queryKey="problems"
+          emptyTitle="No problems found"
+          emptyDescription="Create manually, generate problems, or change your search."
+          getRowKey={(problem) => problem.id}
+          createAction={<Button onClick={() => setShowCreateForm((value) => !value)}>{showCreateForm ? "Close form" : "New problem"}</Button>}
+          fetchPage={async ({ offset, limit, search }) => {
+            const response = await problemsApi.list({ offset, limit, title: search || undefined });
+            return { rows: response.problems };
+          }}
+        />
 
+        {showCreateForm ? (
         <Panel title="Quick manual problem">
           <form onSubmit={onSubmit} className="grid gap-3">
             <Field label="Type">
@@ -107,6 +125,7 @@ export default function ProblemsPage() {
             <Button disabled={createProblem.isPending}>{createProblem.isPending ? "Saving..." : "Save problem"}</Button>
           </form>
         </Panel>
+        ) : null}
       </div>
     </AppShell>
   );

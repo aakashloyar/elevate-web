@@ -85,7 +85,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex cursor-pointer items-center justify-center rounded border px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60",
         variant === "primary" && "border-[var(--accent)] bg-[var(--accent)] text-white hover:brightness-95",
         variant === "secondary" && "border-[var(--line)] bg-white text-neutral-900 hover:bg-neutral-50",
         variant === "danger" && "border-[var(--danger)] bg-[var(--danger)] text-white hover:brightness-95",
@@ -139,5 +139,30 @@ export function EmptyState({ title, description }: { title: string; description:
       <p className="font-semibold">{title}</p>
       <p className="mt-1 text-sm text-[var(--muted)]">{description}</p>
     </div>
+  );
+}
+
+export function TruncatedText({
+  children,
+  className,
+  lines = 1,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  lines?: 1 | 2;
+}) {
+  const text = typeof children === "string" || typeof children === "number" ? String(children) : undefined;
+
+  return (
+    <span
+      className={cn(
+        "block min-w-0 overflow-hidden text-ellipsis",
+        lines === 1 ? "whitespace-nowrap" : "line-clamp-2",
+        className,
+      )}
+      title={text}
+    >
+      {children}
+    </span>
   );
 }
