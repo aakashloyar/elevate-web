@@ -53,7 +53,25 @@ export default function ProblemsPage() {
     {
       key: "source",
       header: "Source",
-      render: (problem) => <Badge tone={problem.source_type === "ai" ? "yellow" : "neutral"}>{problem.source_type || "—"}</Badge>,
+      render: (problem) => {
+        const source = problem.source_type ?? problem.sourceType ?? problem.source;
+        return <Badge tone={source === "ai" ? "yellow" : "neutral"}>{source || "—"}</Badge>;
+      },
+    },
+    {
+      key: "topics",
+      header: "Topics",
+      className: "w-[20%]",
+      render: (problem) => (
+        <TruncatedText className="text-[var(--muted)]">
+          {(
+            problem.topic_ids?.length ? problem.topic_ids
+              : problem.topicIds?.length ? problem.topicIds
+                : problem.topics?.length ? problem.topics
+                  : problem.tags
+          )?.join(", ") || "—"}
+        </TruncatedText>
+      ),
     },
   ];
 
@@ -95,7 +113,16 @@ export default function ProblemsPage() {
           createAction={<Button onClick={() => setShowCreateForm((value) => !value)}>{showCreateForm ? "Close form" : "New problem"}</Button>}
           fetchPage={async ({ offset, limit, search }) => {
             const response = await problemsApi.list({ offset, limit, title: search || undefined });
-            return { rows: response.problems };
+            const rows = await Promise.all(
+              response.problems.map(async (problem) => {
+                try {
+                  return { ...problem, ...(await problemsApi.get(problem.id)) };
+                } catch {
+                  return problem;
+                }
+              }),
+            );
+            return { rows };
           }}
         />
 

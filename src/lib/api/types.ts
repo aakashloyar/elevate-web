@@ -41,6 +41,11 @@ export type Problem = {
   type: ProblemType;
   difficulty: Difficulty;
   source_type?: SourceType;
+  source?: string;
+  sourceType?: string;
+  topic_ids?: string[];
+  topicIds?: string[];
+  topics?: string[];
   options?: ProblemOption[];
   tags?: string[];
   created_at?: string;
