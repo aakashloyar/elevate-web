@@ -1,0 +1,52 @@
+src/app/assessments/create/page.tsx
+  s_a0f5e61315c163::t_e9bdf4e3c718e8 14,27,49-50
+  s_a0f5e61315c163::t_f357192a610e98 15,59-63
+  s_a0f5e61315c163::t_b198bd3ab0a9da 1-13,16-18,20-26,28-48,51-58,64-77
+  s_a0f5e61315c163::t_45f65ea149f4cc 19
+src/app/problems/page.tsx
+  s_8c7c13500c0009::t_31e45bde218fa6 6,33-34
+  s_a0f5e61315c163::t_70db7d259cec52 4-5,10,13,23,27-32,35-58,82,85-100,102,128
+  s_a0f5e61315c163::t_c6ebd64c24ae04 9
+src/components/ui.tsx
+  s_a0f5e61315c163::t_0cdf1c97918bdd 88
+  s_8c7c13500c0009::t_5340f3f702f79d 144-168
+src/components/data-table.tsx
+  s_a0f5e61315c163::t_9a86eb356523b3 1-28,30-42,44-108,110-120,134-161
+  s_8c7c13500c0009::t_5340f3f702f79d 29,43,109,121-133
+src/app/assessments/[assessmentId]/page.tsx
+  s_8c7c13500c0009::t_31e45bde218fa6 8,137,147-148
+  s_a0f5e61315c163::t_5540148951d32c 3,114-119,121-125
+  s_a0f5e61315c163::t_45f65ea149f4cc 1-2,4-7,9-113,120,126-136,138-146,149-330
+src/app/results/page.tsx
+  s_8c7c13500c0009::t_31e45bde218fa6 5,80
+src/app/assessments/page.tsx
+  s_8c7c13500c0009::t_5340f3f702f79d 6,20,24-35
+  s_8c7c13500c0009::t_31e45bde218fa6 4,14,65
+  s_a0f5e61315c163::t_b198bd3ab0a9da 66
+  s_a0f5e61315c163::t_131bc9d410a61b 3,5,8,11,15-19,21,23,36-45,52,55-64,67-71
+  s_8c7c13500c0009::t_3dab35fd271718 13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e6816a56f94bb13437f73e5260e7686d72d621af",
+  "prompts": {},
+  "sessions": {
+    "s_8c7c13500c0009": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a5c7-d3c8-7252-b417-cd54c02a5219",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    },
+    "s_a0f5e61315c163": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a00a94-9263-7ad2-a655-a4bdf68350a5",
+        "model": "gpt-5.5"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    }
+  }
+}
