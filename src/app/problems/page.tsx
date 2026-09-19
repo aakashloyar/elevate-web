@@ -1,29 +1,14 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
-import { AppShell, Badge, Button, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
+import { AppShell, Badge, Button, PageTitle, TruncatedText } from "@/components/ui";
 import { problemsApi } from "@/lib/api/services";
-import type { Difficulty, Problem, ProblemType } from "@/lib/api/types";
+import type { Problem } from "@/lib/api/types";
 
 const pageSize = 10;
 
 export default function ProblemsPage() {
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [type, setType] = useState<ProblemType>("single");
-  const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [statement, setStatement] = useState("");
-  const [createdBy, setCreatedBy] = useState("019fd16d-8296-7039-949f-65044c31d28f");
-
-  const createProblem = useMutation({
-    mutationFn: problemsApi.create,
-    onSuccess: () => {
-      setStatement("");
-      setShowCreateForm(false);
-    },
-  });
-
   const columns: DataTableColumn<Problem>[] = [
     {
       key: "problem",
@@ -62,35 +47,26 @@ export default function ProblemsPage() {
       key: "topics",
       header: "Topics",
       className: "w-[20%]",
-      render: (problem) => (
-        <TruncatedText className="text-[var(--muted)]">
-          {(
-            problem.topic_ids?.length ? problem.topic_ids
-              : problem.topicIds?.length ? problem.topicIds
-                : problem.topics?.length ? problem.topics
-                  : problem.tags
-          )?.join(", ") || "—"}
-        </TruncatedText>
-      ),
+      render: (problem) => {
+        const topics = problem.topic_ids?.length ? problem.topic_ids
+          : problem.topicIds?.length ? problem.topicIds
+            : problem.topics?.length ? problem.topics
+              : problem.tags;
+
+        return topics?.length ? (
+          <div className="flex flex-wrap gap-1">
+            {topics.map((topic) => (
+              <span key={topic} title={topic} className="max-w-full">
+                <Badge>
+                  <TruncatedText>{topic}</TruncatedText>
+                </Badge>
+              </span>
+            ))}
+          </div>
+        ) : "—";
+      },
     },
   ];
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    createProblem.mutate({
-      created_by: createdBy,
-      title: statement.slice(0, 48),
-      statement,
-      type,
-      difficulty,
-      source_type: "manual",
-      options: [
-        { text: "Option A", is_correct: true },
-        { text: "Option B", is_correct: false },
-      ],
-      tags: ["manual"],
-    });
-  }
 
   return (
     <AppShell>
@@ -110,49 +86,13 @@ export default function ProblemsPage() {
           emptyTitle="No problems found"
           emptyDescription="Create manually, generate problems, or change your search."
           getRowKey={(problem) => problem.id}
-          createAction={<Button onClick={() => setShowCreateForm((value) => !value)}>{showCreateForm ? "Close form" : "New problem"}</Button>}
+          createAction={<Link href="/problems/create"><Button>New problem</Button></Link>}
           fetchPage={async ({ offset, limit, search }) => {
             const response = await problemsApi.list({ offset, limit, title: search || undefined });
-            const rows = await Promise.all(
-              response.problems.map(async (problem) => {
-                try {
-                  return { ...problem, ...(await problemsApi.get(problem.id)) };
-                } catch {
-                  return problem;
-                }
-              }),
-            );
-            return { rows };
+            return { rows: response.problems };
           }}
         />
 
-        {showCreateForm ? (
-        <Panel title="Quick manual problem">
-          <form onSubmit={onSubmit} className="grid gap-3">
-            <Field label="Type">
-              <select className={inputClass} value={type} onChange={(event) => setType(event.target.value as ProblemType)}>
-                <option value="single">single</option>
-                <option value="multiple">multiple</option>
-                <option value="numerical">numerical</option>
-              </select>
-            </Field>
-            <Field label="Difficulty">
-              <select className={inputClass} value={difficulty} onChange={(event) => setDifficulty(event.target.value as Difficulty)}>
-                <option value="easy">easy</option>
-                <option value="medium">medium</option>
-                <option value="hard">hard</option>
-              </select>
-            </Field>
-            <Field label="Statement">
-              <textarea className={inputClass} rows={6} value={statement} onChange={(event) => setStatement(event.target.value)} placeholder="Write the question statement..." required />
-            </Field>
-            <Field label="Created by user ID">
-              <input className={inputClass} value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} required />
-            </Field>
-            <Button disabled={createProblem.isPending}>{createProblem.isPending ? "Saving..." : "Save problem"}</Button>
-          </form>
-        </Panel>
-        ) : null}
       </div>
     </AppShell>
   );

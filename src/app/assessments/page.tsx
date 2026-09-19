@@ -28,19 +28,19 @@ export default function AssessmentsPage() {
     },
     {
       key: "created_by",
-      header: "CreatedBy",
+      header: "Writer",
       className: "w-[18%]",
       render: (assessment) => <TruncatedText className="text-[var(--muted)]">{assessment.created_by || "—"}</TruncatedText>,
-    },
-    {
-      key: "duration",
-      header: "Duration",
-      render: (assessment) => minutesFromSeconds(assessment.duration_seconds),
     },
     {
       key: "created",
       header: "CreatedAt",
       render: (assessment) => <span className="text-[var(--muted)]">{formatDateTime(assessment.created_at)}</span>,
+    },
+    {
+      key: "duration",
+      header: "Duration",
+      render: (assessment) => minutesFromSeconds(assessment.duration_seconds),
     },
   ];
 

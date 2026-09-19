@@ -28,7 +28,9 @@ export const assessmentsApi = {
       body: JSON.stringify(body),
     }),
   getProblems: (assessmentId: string) =>
-    request<{ problem_ids: string[] }>(serviceUrls.assessment, `/assessments/${assessmentId}/problems`),
+    request<{ problem_ids: string[] }>(serviceUrls.assessment, `/assessments/${assessmentId}/problems`, {
+      cache: "no-store",
+    }),
 };
 
 export const problemsApi = {
@@ -41,14 +43,24 @@ export const problemsApi = {
       body: JSON.stringify(body),
     }),
   batch: (problemIds: string[]) =>
-    request<Array<{ problem_id: string; problem_type: Problem["type"]; options: Array<{ id: string; text: string }> }>>(
-      serviceUrls.problem,
-      "/problems/batch",
-      {
+    request<BatchProblemResponse[]>(serviceUrls.problem, "/problems/batch", {
         method: "POST",
         body: JSON.stringify({ problem_ids: problemIds }),
-      },
+        cache: "no-store",
+      }).then((problems) =>
+      problems.map((problem) => ({
+        ...problem,
+        id: problem.id ?? problem.problem_id ?? "",
+        type: problem.type ?? problem.problem_type ?? "single",
+        difficulty: problem.difficulty ?? "medium",
+      })),
     ),
+};
+
+type BatchProblemResponse = Omit<Partial<Problem>, "type"> & {
+  type?: Problem["type"];
+  problem_id?: string;
+  problem_type?: Problem["type"];
 };
 
 export const submissionsApi = {

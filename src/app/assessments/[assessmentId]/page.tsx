@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,24 +29,40 @@ export default function AssessmentDetailPage() {
     enabled: Boolean(assessmentId),
   });
 
-  const problemIdsQuery = useQuery({
-    queryKey: ["assessment-problem-ids", assessmentId],
-    queryFn: () => assessmentsApi.getProblems(assessmentId),
-    enabled: Boolean(assessmentId),
-  });
-
-  const problemIds = useMemo(() => problemIdsQuery.data?.problem_ids ?? [], [problemIdsQuery.data?.problem_ids]);
+  const fetchAssessmentProblems = useCallback(async () => {
+    const { problem_ids: problemIds } = await assessmentsApi.getProblems(assessmentId);
+    const problems = problemIds.length > 0 ? await problemsApi.batch(problemIds) : [];
+    return { problemIds, problems };
+  }, [assessmentId]);
 
   const problemsQuery = useQuery({
-    queryKey: ["assessment-problems", problemIds],
-    queryFn: () => Promise.all(problemIds.map((problemId) => problemsApi.get(problemId))),
-    enabled: problemIds.length > 0,
+    queryKey: ["assessment-problems", assessmentId],
+    queryFn: fetchAssessmentProblems,
+    enabled: Boolean(assessmentId),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: false,
+    retry: 3,
   });
 
-  const refreshProblems = () => {
-    queryClient.invalidateQueries({ queryKey: ["assessment-problem-ids", assessmentId] });
-    queryClient.invalidateQueries({ queryKey: ["assessment-problems"] });
-  };
+  const problemIds = problemsQuery.data?.problemIds ?? [];
+
+  const refreshProblems = useCallback(async (waitForPersistence = false) => {
+    const maxAttempts = waitForPersistence ? 6 : 1;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      await queryClient.fetchQuery({
+        queryKey: ["assessment-problems", assessmentId],
+        queryFn: fetchAssessmentProblems,
+        staleTime: 0,
+      });
+
+      if (!waitForPersistence || attempt === maxAttempts - 1) {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }, [assessmentId, fetchAssessmentProblems, queryClient]);
 
   const assessment = assessmentQuery.data;
 
@@ -58,7 +74,8 @@ export default function AssessmentDetailPage() {
         description={assessment?.description || "Review this assessment and attach manual or AI-generated problems."}
       />
 
-      <div className="grid gap-4">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-4">
         <Panel
           title="Assessment info"
           action={<Link className="link" href="/assessments">Back to assessments</Link>}
@@ -72,27 +89,38 @@ export default function AssessmentDetailPage() {
                 <Info label="Assessment ID" value={assessment.id} />
                 <Info label="Duration" value={`${assessment.duration_seconds ?? 0} seconds`} />
                 <Info label="Created by" value={assessment.created_by || "—"} />
-                <Info label="Problems" value={`${problemIds.length}`} />
+                <Info
+                  label="Problems"
+                  value={
+                    problemsQuery.isSuccess
+                      ? `${problemIds.length}`
+                      : problemsQuery.error
+                        ? "—"
+                        : "Loading..."
+                  }
+                />
                 <Info label="Created at" value={formatDateTime(assessment.created_at)} />
                 <Info label="Updated at" value={formatDateTime(assessment.updated_at)} />
               </div>
             ) : null}
         </Panel>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
           <Panel title="Attached problems">
-            {problemIdsQuery.isLoading || problemsQuery.isLoading ? (
+            {problemsQuery.isPending || problemsQuery.isFetching ? (
               <p className="text-sm text-[var(--muted)]">Loading problems...</p>
+            ) : problemsQuery.error ? (
+              <p className="text-sm text-[var(--danger)]">{problemsQuery.error.message}</p>
             ) : problemIds.length === 0 ? (
               <EmptyState title="No problems attached" description="Use manual add or AI generation to add problems to this assessment." />
             ) : (
               <div className="grid gap-3">
-                {(problemsQuery.data ?? []).map((problem) => (
-                  <ProblemRow key={problem.id} problem={problem} />
+                {(problemsQuery.data?.problems ?? []).map((problem, index) => (
+                  <ProblemRow key={problem.id || problem.problem_id || `problem-${index}`} problem={problem} />
                 ))}
               </div>
             )}
           </Panel>
+        </div>
 
           <div className="grid content-start gap-4">
             <Panel title="Add problems">
@@ -121,10 +149,10 @@ export default function AssessmentDetailPage() {
                 key={`ai-${assessment?.created_by ?? "loading"}`}
                 assessmentId={assessmentId}
                 createdBy={assessment?.created_by}
+                onCompleted={() => refreshProblems(true)}
               />
             )}
           </div>
-        </div>
       </div>
     </AppShell>
   );
@@ -141,16 +169,14 @@ function Info({ label, value }: { label: string; value: string }) {
 
 function ProblemRow({ problem }: { problem: Problem }) {
   return (
-    <div className="rounded border border-[var(--line)] bg-white p-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-            <TruncatedText className="font-semibold">{problem.title || problem.id}</TruncatedText>
-            <TruncatedText className="mt-1 text-sm text-[var(--muted)]" lines={2}>{problem.statement || "No statement"}</TruncatedText>
-        </div>
-        <div className="flex gap-2">
-          <Badge tone="blue">{problem.type}</Badge>
-          <Badge>{problem.difficulty}</Badge>
-        </div>
+    <div className="flex min-h-[160px] flex-col rounded border border-[var(--line)] bg-white p-3">
+      <div className="min-w-0">
+        <TruncatedText className="min-h-7 font-semibold" lines={2}>{problem.title || problem.id}</TruncatedText>
+        <TruncatedText className="mt-1 min-h-14 text-sm text-[var(--muted)]" lines={3}>{problem.statement || "No statement"}</TruncatedText>
+      </div>
+      <div className="flex flex-wrap gap-2 pt-3">
+        <Badge tone="blue">{problem.type}</Badge>
+        <Badge>{problem.difficulty}</Badge>
       </div>
     </div>
   );
@@ -178,6 +204,14 @@ function ManualProblemCard({
     onSuccess: () => onAdded(),
   });
 
+  const validOptions = options.filter((option) => option.text.trim());
+  const correctOptionCount = validOptions.filter((option) => option.is_correct).length;
+  const optionsValid = type === "single"
+    ? correctOptionCount === 1
+    : type === "multiple"
+      ? correctOptionCount > 0
+      : validOptions.length === 1 && Boolean(validOptions[0].is_correct);
+
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     addProblem.mutate({
@@ -187,13 +221,25 @@ function ManualProblemCard({
       type,
       difficulty,
       source_type: "manual",
-      options: type === "numerical" ? [] : options.filter((option) => option.text.trim()),
+      options: options.filter((option) => option.text.trim()),
       tags: tags.split(",").map((tag) => tag.trim()).filter(Boolean),
     });
   }
 
   function updateOption(index: number, patch: Partial<ProblemOption>) {
-    setOptions((current) => current.map((option, optionIndex) => (optionIndex === index ? { ...option, ...patch } : option)));
+    setOptions((current) => current.map((option, optionIndex) => {
+      if (type === "single" && patch.is_correct && optionIndex !== index) {
+        return { ...option, is_correct: false };
+      }
+      return optionIndex === index ? { ...option, ...patch } : option;
+    }));
+  }
+
+  function onTypeChange(nextType: ProblemType) {
+    setType(nextType);
+    if (nextType === "numerical") {
+      setOptions((current) => current.map((option, index) => ({ ...option, is_correct: index === 0 })));
+    }
   }
 
   return (
@@ -210,7 +256,7 @@ function ManualProblemCard({
         </Field>
         <div className="grid grid-cols-2 gap-2">
           <Field label="Type">
-            <select className={inputClass} value={type} onChange={(event) => setType(event.target.value as ProblemType)}>
+            <select className={inputClass} value={type} onChange={(event) => onTypeChange(event.target.value as ProblemType)}>
               <option value="single">single</option>
               <option value="multiple">multiple</option>
               <option value="numerical">numerical</option>
@@ -224,24 +270,24 @@ function ManualProblemCard({
             </select>
           </Field>
         </div>
-        {type !== "numerical" ? (
+        {(
           <div className="grid gap-2">
             <p className="text-sm font-medium text-neutral-800">Options</p>
-            {options.map((option, index) => (
+            {(type === "numerical" ? options.slice(0, 1) : options).map((option, index) => (
               <div key={index} className="grid grid-cols-[1fr_auto] items-center gap-2">
                 <input className={inputClass} value={option.text} onChange={(event) => updateOption(index, { text: event.target.value })} />
                 <label className="flex cursor-pointer items-center gap-2 text-sm">
-                  <input type="checkbox" checked={Boolean(option.is_correct)} onChange={(event) => updateOption(index, { is_correct: event.target.checked })} />
+                <input type="checkbox" checked={Boolean(option.is_correct)} disabled={type === "numerical"} onChange={(event) => updateOption(index, { is_correct: event.target.checked })} />
                   Correct
                 </label>
               </div>
             ))}
           </div>
-        ) : null}
+        )}
         <Field label="Tags">
           <input className={inputClass} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="algorithms, arrays" />
         </Field>
-        <Button disabled={addProblem.isPending}>{addProblem.isPending ? "Adding..." : "Add problem to assessment"}</Button>
+        <Button disabled={addProblem.isPending || !optionsValid}>{addProblem.isPending ? "Adding..." : "Add problem to assessment"}</Button>
         {addProblem.data ? <p className="text-sm text-[var(--muted)]">Added problem {addProblem.data.problem_id}</p> : null}
         {addProblem.error ? <p className="text-sm text-[var(--danger)]">{addProblem.error.message}</p> : null}
       </form>
@@ -249,7 +295,15 @@ function ManualProblemCard({
   );
 }
 
-function AiGenerationCard({ assessmentId, createdBy }: { assessmentId: string; createdBy?: string }) {
+function AiGenerationCard({
+  assessmentId,
+  createdBy,
+  onCompleted,
+}: {
+  assessmentId: string;
+  createdBy?: string;
+  onCompleted: () => void;
+}) {
   const [userId, setUserId] = useState(createdBy || "019fd16d-8296-7039-949f-65044c31d28f");
   const [level, setLevel] = useState<Difficulty>("medium");
   const [description, setDescription] = useState("Generate NCERT-style conceptual questions.");
@@ -258,6 +312,7 @@ function AiGenerationCard({ assessmentId, createdBy }: { assessmentId: string; c
   const [numericalCount, setNumericalCount] = useState("2");
   const [topicIds, setTopicIds] = useState("binary-search, arrays");
   const [jobId, setJobId] = useState("");
+  const completedJobId = useRef("");
 
   const createJob = useMutation({
     mutationFn: generationApi.createJob,
@@ -270,6 +325,13 @@ function AiGenerationCard({ assessmentId, createdBy }: { assessmentId: string; c
     enabled: Boolean(jobId),
     refetchInterval: jobId ? 3000 : false,
   });
+
+  useEffect(() => {
+    if (jobId && jobQuery.data?.status === "completed" && completedJobId.current !== jobId) {
+      completedJobId.current = jobId;
+      onCompleted();
+    }
+  }, [jobId, jobQuery.data?.status, multiCount, numericalCount, onCompleted, singleCount]);
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();

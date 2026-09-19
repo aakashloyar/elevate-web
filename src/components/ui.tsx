@@ -149,7 +149,7 @@ export function TruncatedText({
 }: {
   children: React.ReactNode;
   className?: string;
-  lines?: 1 | 2;
+  lines?: 1 | 2 | 3;
 }) {
   const text = typeof children === "string" || typeof children === "number" ? String(children) : undefined;
 
@@ -157,7 +157,7 @@ export function TruncatedText({
     <span
       className={cn(
         "block min-w-0 overflow-hidden text-ellipsis",
-        lines === 1 ? "whitespace-nowrap" : "line-clamp-2",
+        lines === 1 ? "whitespace-nowrap" : lines === 2 ? "line-clamp-2" : "line-clamp-3",
         className,
       )}
       title={text}
