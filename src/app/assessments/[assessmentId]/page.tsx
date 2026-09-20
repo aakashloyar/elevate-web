@@ -22,6 +22,8 @@ export default function AssessmentDetailPage() {
   const assessmentId = params.assessmentId;
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"manual" | "ai">("manual");
+  const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
+  const [submissionDuration, setSubmissionDuration] = useState("");
   const router = useRouter();
 
   const assessmentQuery = useQuery({
@@ -71,7 +73,7 @@ export default function AssessmentDetailPage() {
       submissionsApi.create({
         assessment_id: assessmentId,
         user_id: assessment?.created_by,
-        duration_seconds: assessment?.duration_seconds,
+        duration_seconds: Number(submissionDuration),
       }),
     onSuccess: (data) => router.push(`/submissions/${data.submission_id}`),
   });
@@ -169,7 +171,10 @@ export default function AssessmentDetailPage() {
               <Button
                 className="mt-3 w-full"
                 disabled={createSubmission.isPending || !assessment?.created_by || !assessment?.duration_seconds}
-                onClick={() => createSubmission.mutate()}
+                onClick={() => {
+                  setSubmissionDuration(String(assessment?.duration_seconds ?? ""));
+                  setSubmissionDialogOpen(true);
+                }}
               >
                 {createSubmission.isPending ? "Creating submission..." : "Create submission"}
               </Button>
@@ -177,6 +182,42 @@ export default function AssessmentDetailPage() {
             </Panel>
           </div>
       </div>
+
+      {submissionDialogOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="presentation">
+          <div className="w-full max-w-md rounded-lg border border-[var(--line)] bg-[var(--paper)] p-5 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="submission-duration-title">
+            <h2 id="submission-duration-title" className="text-lg font-semibold">Choose submission duration</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              The assessment default is pre-filled. You can adjust it for this submission.
+            </p>
+            <label className="mt-4 grid gap-1 text-sm font-medium">
+              Duration in seconds
+              <input
+                className={inputClass}
+                type="number"
+                min={1}
+                step={1}
+                value={submissionDuration}
+                onChange={(event) => setSubmissionDuration(event.target.value)}
+                autoFocus
+              />
+            </label>
+            {createSubmission.error ? <p className="mt-2 text-sm text-[var(--danger)]">{createSubmission.error.message}</p> : null}
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="secondary" onClick={() => setSubmissionDialogOpen(false)} disabled={createSubmission.isPending}>
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                disabled={createSubmission.isPending || Number(submissionDuration) <= 0}
+                onClick={() => createSubmission.mutate()}
+              >
+                {createSubmission.isPending ? "Creating..." : "Create submission"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }

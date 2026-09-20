@@ -104,21 +104,7 @@ export default function ExamPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
-        <Panel title="Questions">
-          <div className="grid grid-cols-5 gap-2 lg:grid-cols-4">
-            {problems.map((problem, index) => (
-              <button
-                key={problem.id}
-                onClick={() => setCurrentIndex(index)}
-                className={`border px-3 py-2 text-sm font-semibold ${index === currentIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
-              >
-                {index + 1}
-              </button>
-            ))}
-          </div>
-        </Panel>
-
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
         <Panel title={current ? `${currentIndex + 1}. ${current.title || current.id}` : "Problem"}>
           {!current ? (
             <EmptyState title="No problem loaded" description="Check the attempt id or backend runner service." />
@@ -156,6 +142,20 @@ export default function ExamPage() {
               </div>
             </div>
           )}
+        </Panel>
+
+        <Panel title="Questions">
+          <div className="grid grid-cols-5 gap-2 lg:grid-cols-4">
+            {problems.map((problem, index) => (
+              <button
+                key={problem.id}
+                onClick={() => setCurrentIndex(index)}
+                className={`border px-3 py-2 text-sm font-semibold ${index === currentIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
+              >
+                {index + 1}
+              </button>
+            ))}
+          </div>
         </Panel>
       </div>
     </AppShell>
