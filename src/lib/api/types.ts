@@ -84,6 +84,10 @@ export type Submission = {
   }>;
 };
 
+export type SubmissionSummary = Pick<Submission, "id" | "assessment_id" | "user_id" | "status" | "started_at" | "expires_at" | "submitted_at" | "created_at"> & {
+  duration_seconds: number;
+};
+
 export type CreateSubmissionResponse = {
   submission_id: string;
   created_at: string;
@@ -127,6 +131,11 @@ export type Evaluation = {
     type?: ProblemType;
     status: "correct" | "partially_correct" | "incorrect" | "skipped";
     marks: number;
+    options?: Array<{
+      id: string;
+      text: string;
+      is_correct: boolean;
+    }>;
     selected_options?: Array<{
       id: string;
       text: string;

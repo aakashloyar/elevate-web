@@ -11,6 +11,7 @@ import type {
   ProblemView,
   SaveAnswerBatchResponse,
   Submission,
+  SubmissionSummary,
   SubmissionStatusResponse,
 } from "@/lib/api/types";
 
@@ -65,6 +66,11 @@ type BatchProblemResponse = Omit<Partial<Problem>, "type"> & {
 };
 
 export const submissionsApi = {
+  list: (userId: string) =>
+    request<{ submissions: SubmissionSummary[] }>(serviceUrls.submission, "/submissions", {
+      query: { user_id: userId },
+      cache: "no-store",
+    }),
   get: (id: string) => request<Submission>(serviceUrls.submission, `/submissions/${id}`),
   status: (id: string) =>
     request<SubmissionStatusResponse>(serviceUrls.submission, `/submissions/${id}/status`),
