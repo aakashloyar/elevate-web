@@ -1,0 +1,22 @@
+src/app/assessments/[assessmentId]/page.tsx
+  s_8c7c13500c0009::t_75ad39160da3e6 25-26,76,174-177,185-220
+src/app/exam/page.tsx
+  s_8c7c13500c0009::t_8779e5f3cd2774 107,146-158
+  s_8c7c13500c0009::t_0e3d57c2e0a491 159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "371db11202d80475b7783a78df036257b9613d51",
+  "prompts": {},
+  "sessions": {
+    "s_8c7c13500c0009": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a5c7-d3c8-7252-b417-cd54c02a5219",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    }
+  }
+}
