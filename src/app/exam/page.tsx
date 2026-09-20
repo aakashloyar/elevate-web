@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AppShell, Badge, Button, EmptyState, Panel, PageTitle } from "@/components/ui";
 import { StatusBadge } from "@/components/status";
@@ -8,7 +9,8 @@ import { runnerApi, submissionsApi } from "@/lib/api/services";
 import { mockAttemptProblems } from "@/lib/mock-data";
 
 export default function ExamPage() {
-  const [attemptId, setAttemptId] = useState("S123");
+  const searchParams = useSearchParams();
+  const [attemptId, setAttemptId] = useState(() => searchParams.get("submissionId") ?? "S123");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
 

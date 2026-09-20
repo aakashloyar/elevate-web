@@ -2,11 +2,11 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, EmptyState, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
-import { assessmentsApi, generationApi, problemsApi } from "@/lib/api/services";
+import { assessmentsApi, generationApi, problemsApi, submissionsApi } from "@/lib/api/services";
 import type { Difficulty, Problem, ProblemOption, ProblemType } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ export default function AssessmentDetailPage() {
   const assessmentId = params.assessmentId;
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"manual" | "ai">("manual");
+  const router = useRouter();
 
   const assessmentQuery = useQuery({
     queryKey: ["assessment", assessmentId],
@@ -65,6 +66,15 @@ export default function AssessmentDetailPage() {
   }, [assessmentId, fetchAssessmentProblems, queryClient]);
 
   const assessment = assessmentQuery.data;
+  const createSubmission = useMutation({
+    mutationFn: () =>
+      submissionsApi.create({
+        assessment_id: assessmentId,
+        user_id: assessment?.created_by,
+        duration_seconds: assessment?.duration_seconds,
+      }),
+    onSuccess: (data) => router.push(`/submissions/${data.submission_id}`),
+  });
 
   return (
     <AppShell>
@@ -152,6 +162,19 @@ export default function AssessmentDetailPage() {
                 onCompleted={() => refreshProblems(true)}
               />
             )}
+            <Panel title="Submission">
+              <p className="text-sm leading-6 text-[var(--muted)]">
+                Create an attempt for this assessment and start it when you are ready.
+              </p>
+              <Button
+                className="mt-3 w-full"
+                disabled={createSubmission.isPending || !assessment?.created_by || !assessment?.duration_seconds}
+                onClick={() => createSubmission.mutate()}
+              >
+                {createSubmission.isPending ? "Creating submission..." : "Create submission"}
+              </Button>
+              {createSubmission.error ? <p className="mt-2 text-sm text-[var(--danger)]">{createSubmission.error.message}</p> : null}
+            </Panel>
           </div>
       </div>
     </AppShell>

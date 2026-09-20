@@ -66,6 +66,24 @@ export type SubmissionStatusResponse = {
   expires_at?: string | null;
 };
 
+export type Submission = {
+  id: string;
+  assessment_id: string;
+  user_id: string;
+  status: SubmissionStatus;
+  started_at?: string | null;
+  expires_at?: string | null;
+  submitted_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  problems?: Array<{
+    problem_id: string;
+    problem_type: ProblemType;
+    option_ids?: string[];
+    option_texts?: string[];
+  }>;
+};
+
 export type CreateSubmissionResponse = {
   submission_id: string;
   created_at: string;
