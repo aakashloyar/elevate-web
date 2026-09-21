@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, EmptyState, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
 import { assessmentsApi, generationApi, problemsApi, submissionsApi } from "@/lib/api/services";
@@ -16,12 +16,12 @@ const defaultOptions = [
   { text: "O(n)", is_correct: false },
   { text: "O(n log n)", is_correct: false },
 ];
+const PROBLEMS_BATCH_SIZE = 12;
 
 export default function AssessmentDetailPage() {
   const params = useParams<{ assessmentId: string }>();
   const assessmentId = params.assessmentId;
-  const queryClient = useQueryClient();
-  const [mode, setMode] = useState<"manual" | "ai">("manual");
+  const [currentAttachedProblemIndex, setCurrentAttachedProblemIndex] = useState(0);
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
   const [submissionDuration, setSubmissionDuration] = useState("");
   const router = useRouter();
@@ -32,15 +32,9 @@ export default function AssessmentDetailPage() {
     enabled: Boolean(assessmentId),
   });
 
-  const fetchAssessmentProblems = useCallback(async () => {
-    const { problem_ids: problemIds } = await assessmentsApi.getProblems(assessmentId);
-    const problems = problemIds.length > 0 ? await problemsApi.batch(problemIds) : [];
-    return { problemIds, problems };
-  }, [assessmentId]);
-
-  const problemsQuery = useQuery({
-    queryKey: ["assessment-problems", assessmentId],
-    queryFn: fetchAssessmentProblems,
+  const problemIdsQuery = useQuery({
+    queryKey: ["assessment-problem-ids", assessmentId],
+    queryFn: () => assessmentsApi.getProblems(assessmentId),
     enabled: Boolean(assessmentId),
     staleTime: 0,
     refetchOnMount: "always",
@@ -48,24 +42,24 @@ export default function AssessmentDetailPage() {
     retry: 3,
   });
 
-  const problemIds = problemsQuery.data?.problemIds ?? [];
-
-  const refreshProblems = useCallback(async (waitForPersistence = false) => {
-    const maxAttempts = waitForPersistence ? 6 : 1;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      await queryClient.fetchQuery({
-        queryKey: ["assessment-problems", assessmentId],
-        queryFn: fetchAssessmentProblems,
-        staleTime: 0,
-      });
-
-      if (!waitForPersistence || attempt === maxAttempts - 1) {
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-  }, [assessmentId, fetchAssessmentProblems, queryClient]);
+  const problemIds = Array.from(new Set(problemIdsQuery.data?.problem_ids ?? []))
+    .filter((problemId) => problemId && problemId !== assessmentId);
+  const problemsQuery = useInfiniteQuery({
+    queryKey: ["assessment-problems", assessmentId, problemIds],
+    initialPageParam: 0,
+    queryFn: ({ pageParam }) => problemsApi.batch(problemIds.slice(pageParam, pageParam + PROBLEMS_BATCH_SIZE), true),
+    enabled: problemIds.length > 0,
+    getNextPageParam: (_lastPage, pages) => {
+      const nextOffset = pages.length * PROBLEMS_BATCH_SIZE;
+      return nextOffset < problemIds.length ? nextOffset : undefined;
+    },
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+  const loadedProblems = problemsQuery.data?.pages.flat() ?? [];
+  const attachedProblemsStart = Math.floor(currentAttachedProblemIndex / PROBLEMS_BATCH_SIZE) * PROBLEMS_BATCH_SIZE;
+  const visibleProblems = loadedProblems.slice(attachedProblemsStart, attachedProblemsStart + PROBLEMS_BATCH_SIZE);
+  const currentAttachedProblem = loadedProblems[currentAttachedProblemIndex];
 
   const assessment = assessmentQuery.data;
   const createSubmission = useMutation({
@@ -104,9 +98,9 @@ export default function AssessmentDetailPage() {
                 <Info
                   label="Problems"
                   value={
-                    problemsQuery.isSuccess
+                    problemIdsQuery.isSuccess
                       ? `${problemIds.length}`
-                      : problemsQuery.error
+                      : problemIdsQuery.error
                         ? "—"
                         : "Loading..."
                   }
@@ -117,53 +111,111 @@ export default function AssessmentDetailPage() {
             ) : null}
         </Panel>
 
-          <Panel title="Attached problems">
-            {problemsQuery.isPending || problemsQuery.isFetching ? (
+          <Panel title={problemIds.length > 0 ? `Attached problems ${currentAttachedProblemIndex + 1} of ${problemIds.length}` : "Attached problems"}>
+            {problemIdsQuery.isPending || problemsQuery.isPending ? (
               <p className="text-sm text-[var(--muted)]">Loading problems...</p>
-            ) : problemsQuery.error ? (
-              <p className="text-sm text-[var(--danger)]">{problemsQuery.error.message}</p>
+            ) : problemIdsQuery.error || problemsQuery.error ? (
+              <p className="text-sm text-[var(--danger)]">{problemIdsQuery.error?.message ?? problemsQuery.error?.message}</p>
             ) : problemIds.length === 0 ? (
-              <EmptyState title="No problems attached" description="Use manual add or AI generation to add problems to this assessment." />
+              <EmptyState title="No problems attached" description="Use the Add problem button to create and attach a problem to this assessment." />
             ) : (
-              <div className="grid gap-3">
-                {(problemsQuery.data?.problems ?? []).map((problem, index) => (
-                  <ProblemRow key={problem.id || problem.problem_id || `problem-${index}`} problem={problem} />
-                ))}
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-start">
+                <div className="min-w-0">
+                  {currentAttachedProblem ? <AttachedProblemCard problem={currentAttachedProblem} /> : null}
+                  {currentAttachedProblem ? (
+                    <div className="mt-4 flex justify-between gap-2">
+                      <Button
+                        variant="secondary"
+                        disabled={currentAttachedProblemIndex === 0}
+                        onClick={() => setCurrentAttachedProblemIndex((index) => index - 1)}
+                      >
+                        ← Previous
+                      </Button>
+                      <Button
+                        disabled={currentAttachedProblemIndex === problemIds.length - 1 || problemsQuery.isFetchingNextPage}
+                        onClick={async () => {
+                          const nextIndex = currentAttachedProblemIndex + 1;
+                          if (nextIndex >= loadedProblems.length && problemsQuery.hasNextPage) {
+                            await problemsQuery.fetchNextPage();
+                          }
+                          setCurrentAttachedProblemIndex(nextIndex);
+                        }}
+                      >
+                        {problemsQuery.isFetchingNextPage ? "Loading..." : "Next →"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {problemIds.length > 0 && visibleProblems.length > 0 ? (
+                  <aside className="rounded-lg border border-[var(--line)] bg-[var(--paper)] p-3">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold">Questions</h3>
+                      <span className="text-xs text-[var(--muted)]">{problemIds.length}</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {visibleProblems.map((problem, pageIndex) => {
+                        const index = attachedProblemsStart + pageIndex;
+                        return (
+                          <button
+                            key={problem.id || problem.problem_id || `problem-selector-${index}`}
+                            type="button"
+                            onClick={() => setCurrentAttachedProblemIndex(index)}
+                            className={`rounded border px-2 py-2 text-sm font-semibold ${index === currentAttachedProblemIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
+                          >
+                            {index + 1}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {problemIds.length > PROBLEMS_BATCH_SIZE ? (
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--line)] pt-3">
+                        <button
+                          type="button"
+                          className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label="Previous attached problems"
+                          title="Previous problems"
+                          disabled={attachedProblemsStart === 0}
+                          onClick={() => setCurrentAttachedProblemIndex(attachedProblemsStart - PROBLEMS_BATCH_SIZE)}
+                        >←</button>
+                        <span className="text-center text-xs text-[var(--muted)]">
+                          Page {Math.floor(attachedProblemsStart / PROBLEMS_BATCH_SIZE) + 1} of {Math.ceil(problemIds.length / PROBLEMS_BATCH_SIZE)}
+                        </span>
+                        <button
+                          type="button"
+                          className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
+                          aria-label="Next attached problems"
+                          title="Next problems"
+                          disabled={attachedProblemsStart + PROBLEMS_BATCH_SIZE >= problemIds.length || problemsQuery.isFetchingNextPage}
+                          onClick={async () => {
+                            if (attachedProblemsStart + PROBLEMS_BATCH_SIZE >= problemIds.length) return;
+                            if (attachedProblemsStart + PROBLEMS_BATCH_SIZE >= loadedProblems.length && problemsQuery.hasNextPage) {
+                              await problemsQuery.fetchNextPage();
+                            }
+                            setCurrentAttachedProblemIndex(attachedProblemsStart + PROBLEMS_BATCH_SIZE);
+                          }}
+                        >→</button>
+                      </div>
+                    ) : null}
+                  </aside>
+                ) : null}
               </div>
             )}
           </Panel>
         </div>
 
           <div className="grid content-start gap-4">
-            <Panel title="Add problems">
-              <div className="grid grid-cols-2 gap-2">
-                <Button type="button" variant={mode === "manual" ? "primary" : "secondary"} onClick={() => setMode("manual")}>
-                  Manual
-                </Button>
-                <Button type="button" variant={mode === "ai" ? "primary" : "secondary"} onClick={() => setMode("ai")}>
-                  AI generation
-                </Button>
+            <Panel title="Add problem">
+              <p className="text-sm leading-6 text-[var(--muted)]">Choose how you want to add a problem to this assessment.</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Link href={`/problems/create?assessmentId=${assessmentId}`}>
+                  <Button className="w-full">Add manually</Button>
+                </Link>
+                <Link href={`/generation?assessmentId=${assessmentId}`}>
+                  <Button className="w-full">Generate with AI</Button>
+                </Link>
               </div>
-              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                Manual adds one ready problem immediately. AI creates a generation job linked to this assessment.
-              </p>
             </Panel>
-
-            {mode === "manual" ? (
-              <ManualProblemCard
-                key={`manual-${assessment?.created_by ?? "loading"}`}
-                assessmentId={assessmentId}
-                createdBy={assessment?.created_by}
-                onAdded={refreshProblems}
-              />
-            ) : (
-              <AiGenerationCard
-                key={`ai-${assessment?.created_by ?? "loading"}`}
-                assessmentId={assessmentId}
-                createdBy={assessment?.created_by}
-                onCompleted={() => refreshProblems(true)}
-              />
-            )}
             <Panel title="Submission">
               <p className="text-sm leading-6 text-[var(--muted)]">
                 Create an attempt for this assessment and start it when you are ready.
@@ -231,17 +283,26 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ProblemRow({ problem }: { problem: Problem }) {
+function AttachedProblemCard({ problem }: { problem: Problem }) {
   return (
-    <div className="flex min-h-[160px] flex-col rounded border border-[var(--line)] bg-white p-3">
-      <div className="min-w-0">
-        <TruncatedText className="min-h-7 font-semibold" lines={2}>{problem.title || problem.id}</TruncatedText>
-        <TruncatedText className="mt-1 min-h-14 text-sm text-[var(--muted)]" lines={3}>{problem.statement || "No statement"}</TruncatedText>
+    <div className="rounded border border-[var(--line)] bg-white p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-lg font-semibold">{problem.title || problem.id}</h3>
+        <div className="flex items-center gap-2">
+          <Badge tone="blue">{problem.type}</Badge>
+          <Badge>{problem.difficulty}</Badge>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2 pt-3">
-        <Badge tone="blue">{problem.type}</Badge>
-        <Badge>{problem.difficulty}</Badge>
-      </div>
+      <p className="mt-3 whitespace-pre-wrap leading-7 text-[var(--muted)]">{problem.statement || "No statement"}</p>
+      {problem.options?.length ? (
+        <div className="mt-5 grid gap-2">
+          {problem.options.map((option, index) => (
+            <div key={`${option.id ?? option.text}-${index}`} className="rounded border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm">
+              <span className="mr-2 font-bold">{String.fromCharCode(65 + index)}.</span>{option.text || "—"}
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

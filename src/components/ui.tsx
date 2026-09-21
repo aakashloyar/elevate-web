@@ -14,9 +14,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/assessments">Assessments</NavLink>
             <NavLink href="/problems">Problems</NavLink>
             <NavLink href="/submissions">Submissions</NavLink>
-            <NavLink href="/exam">Exam runner</NavLink>
-            <NavLink href="/generation">AI generation</NavLink>
-            <NavLink href="/results">Results</NavLink>
           </nav>
         </div>
       </header>

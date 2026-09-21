@@ -71,6 +71,7 @@ export type Submission = {
   assessment_id: string;
   user_id: string;
   status: SubmissionStatus;
+  duration_seconds?: number;
   started_at?: string | null;
   expires_at?: string | null;
   submitted_at?: string | null;
@@ -121,14 +122,21 @@ export type GenerationJob = {
 export type Evaluation = {
   submission_id: string;
   assessment_id?: string;
+  assessment_title?: string;
   user_id?: string;
+  user_name?: string;
+  duration_seconds?: number;
   total_marks?: number;
   scored_marks?: number;
   score?: number;
   evaluated_at?: string;
   questions?: Array<{
     problem_id: string;
+    title?: string;
+    statement?: string;
     type?: ProblemType;
+    difficulty?: Difficulty;
+    tags?: string[];
     status: "correct" | "partially_correct" | "incorrect" | "skipped";
     marks: number;
     options?: Array<{

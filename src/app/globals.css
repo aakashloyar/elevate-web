@@ -38,6 +38,21 @@ a {
   text-decoration: none;
 }
 
+a,
+button,
+[role="button"],
+label,
+select,
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 button,
 input,
 select,

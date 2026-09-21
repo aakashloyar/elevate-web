@@ -6,8 +6,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, Panel, PageTitle } from "@/components/ui";
-import { evaluationApi, problemsApi, submissionsApi } from "@/lib/api/services";
+import { evaluationApi, submissionsApi } from "@/lib/api/services";
 import { formatDateTime } from "@/lib/utils";
+
+const QUESTION_SELECTOR_PAGE_SIZE = 12;
 
 export default function SubmissionDetailPage() {
   const params = useParams<{ submissionId: string }>();
@@ -46,20 +48,9 @@ export default function SubmissionDetailPage() {
   }, [evaluationQuery.data]);
   const questions = useMemo(() => evaluationQuery.data?.questions ?? [], [evaluationQuery.data]);
   const currentQuestion = questions[currentQuestionIndex];
-  const questionIDs = useMemo(() => questions.map((question) => question.problem_id), [questions]);
-  const problemsQuery = useQuery({
-    queryKey: ["submission-analysis-problems", submissionId, questionIDs],
-    queryFn: () => problemsApi.batch(questionIDs),
-    enabled: questionIDs.length > 0,
-  });
-  const currentProblem = problemsQuery.data?.find((problem) => problem.id === currentQuestion?.problem_id);
-  const currentProblemDetailsQuery = useQuery({
-    queryKey: ["submission-analysis-problem", currentQuestion?.problem_id],
-    queryFn: () => problemsApi.get(currentQuestion!.problem_id),
-    enabled: Boolean(currentQuestion?.problem_id) && !(currentQuestion?.options?.length),
-    staleTime: 5 * 60 * 1000,
-  });
-  const problemForAnalysis = currentProblemDetailsQuery.data ?? currentProblem;
+  const problemForAnalysis = currentQuestion;
+  const questionSelectorStart = Math.floor(currentQuestionIndex / QUESTION_SELECTOR_PAGE_SIZE) * QUESTION_SELECTOR_PAGE_SIZE;
+  const visibleQuestions = questions.slice(questionSelectorStart, questionSelectorStart + QUESTION_SELECTOR_PAGE_SIZE);
   const isNumericalQuestion = currentQuestion?.type === "numerical" || problemForAnalysis?.type === "numerical";
   const analysisOptionList = useMemo(
     () => analysisOptions(currentQuestion, problemForAnalysis),
@@ -87,12 +78,15 @@ export default function SubmissionDetailPage() {
             <p className="text-sm text-[var(--danger)]">{submissionQuery.error.message}</p>
           ) : submission ? (
             <div className="grid gap-3 text-sm md:grid-cols-2">
-              <Info label="Submission ID" value={submission.id} />
-              <Info label="Assessment ID" value={submission.assessment_id} />
-              <Info label="User ID" value={submission.user_id} />
+              <Info label="Assessment Name" value={evaluationQuery.data?.assessment_title || submission.assessment_id} />
+              <Info label="User Name" value={evaluationQuery.data?.user_name || submission.user_id} />
+              <Info label="Total duration" value={formatDuration(evaluationQuery.data?.duration_seconds)} />
+              <Info label="Time taken" value={formatDuration(timeTakenSeconds(submission.started_at, submission.submitted_at ?? (expired ? submission.expires_at : null)))} />
               <Info label="Started at" value={formatDateTime(submission.started_at)} />
-              <Info label="Expires at" value={formatDateTime(submission.expires_at)} />
-              <Info label="Created at" value={formatDateTime(submission.created_at)} />
+              <div className="rounded border border-[var(--line)] bg-white px-3 py-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Status</p>
+                <div className="mt-1"><StatusBadge value={expired ? "EXPIRED" : submission.status} /></div>
+              </div>
             </div>
           ) : null}
           {submission && isStartable ? (
@@ -116,10 +110,7 @@ export default function SubmissionDetailPage() {
         >
         {submission ? (
           <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded border border-[var(--line)] bg-white px-3 py-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Status</p>
-              <div className="mt-1"><StatusBadge value={expired ? "EXPIRED" : submission.status} /></div>
-            </div>
+            <Info label="Score" value={`${evaluationQuery.data?.scored_marks ?? evaluationQuery.data?.score ?? "—"} / ${evaluationQuery.data?.total_marks ?? "—"}`} />
             <Info label="Problems" value={`${submission.problems?.length ?? 0}`} />
           </div>
         ) : null}
@@ -178,9 +169,37 @@ export default function SubmissionDetailPage() {
                 <Button disabled={currentQuestionIndex === questions.length - 1} onClick={() => setCurrentQuestionIndex((value) => value + 1)}>Next →</Button>
               </div>
             </div>
-            <Panel title="Questions">
+            <Panel title={`Questions ${questionSelectorStart + 1}-${Math.min(questionSelectorStart + QUESTION_SELECTOR_PAGE_SIZE, questions.length)} of ${questions.length}`}>
               <div className="grid grid-cols-4 gap-2">
-                {questions.map((question, index) => <button key={question.problem_id} type="button" onClick={() => setCurrentQuestionIndex(index)} className={`rounded border px-2 py-2 text-sm font-semibold ${index === currentQuestionIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : question.status === "correct" ? "border-green-300 bg-green-50 text-green-900" : question.status === "partially_correct" ? "border-amber-300 bg-amber-50 text-amber-900" : question.status === "incorrect" ? "border-red-300 bg-red-50 text-red-900" : "border-slate-300 bg-slate-50 text-slate-700"}`}>{index + 1}</button>)}
+                {visibleQuestions.map((question, pageIndex) => {
+                  const index = questionSelectorStart + pageIndex;
+                  return <button key={question.problem_id} type="button" onClick={() => setCurrentQuestionIndex(index)} className={`rounded border px-2 py-2 text-sm font-semibold ${index === currentQuestionIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : question.status === "correct" ? "border-green-300 bg-green-50 text-green-900" : question.status === "partially_correct" ? "border-amber-300 bg-amber-50 text-amber-900" : question.status === "incorrect" ? "border-red-300 bg-red-50 text-red-900" : "border-slate-300 bg-slate-50 text-slate-700"}`}>{index + 1}</button>;
+                })}
+              </div>
+              <div className="mt-4 flex justify-between gap-2 border-t border-[var(--line)] pt-3">
+                <button
+                  type="button"
+                  className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous question selector page"
+                  title="Previous questions"
+                  disabled={questionSelectorStart === 0}
+                  onClick={() => setCurrentQuestionIndex(questionSelectorStart - QUESTION_SELECTOR_PAGE_SIZE)}
+                >
+                  ←
+                </button>
+                <span className="self-center text-xs text-[var(--muted)]">
+                  Page {Math.floor(questionSelectorStart / QUESTION_SELECTOR_PAGE_SIZE) + 1} of {Math.ceil(questions.length / QUESTION_SELECTOR_PAGE_SIZE)}
+                </span>
+                <button
+                  type="button"
+                  className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next question selector page"
+                  title="Next questions"
+                  disabled={questionSelectorStart + QUESTION_SELECTOR_PAGE_SIZE >= questions.length}
+                  onClick={() => setCurrentQuestionIndex(questionSelectorStart + QUESTION_SELECTOR_PAGE_SIZE)}
+                >
+                  →
+                </button>
               </div>
             </Panel>
           </div>
@@ -231,6 +250,19 @@ function Info({ label, value }: { label: string; value?: string | null }) {
       <p className="mt-1 break-all font-medium">{value || "—"}</p>
     </div>
   );
+}
+
+function formatDuration(seconds?: number | null) {
+  if (seconds === undefined || seconds === null || seconds < 0) return "—";
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
+}
+
+function timeTakenSeconds(start?: string | null, end?: string | null) {
+  if (!start || !end) return null;
+  const elapsed = Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000);
+  return Number.isFinite(elapsed) ? Math.max(0, elapsed) : null;
 }
 
 function InsightCard({ label, value, tone }: { label: string; value: number; tone: "green" | "yellow" | "red" | "blue" }) {

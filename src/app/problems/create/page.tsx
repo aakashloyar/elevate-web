@@ -2,10 +2,10 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AppShell, Button, Field, inputClass, Panel, PageTitle } from "@/components/ui";
-import { problemsApi } from "@/lib/api/services";
+import { assessmentsApi, problemsApi } from "@/lib/api/services";
 import type { Difficulty, ProblemOption, ProblemType } from "@/lib/api/types";
 
 const defaultOptions: ProblemOption[] = [
@@ -17,6 +17,8 @@ const defaultOptions: ProblemOption[] = [
 
 export default function CreateProblemPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const assessmentId = searchParams.get("assessmentId");
   const [title, setTitle] = useState("");
   const [statement, setStatement] = useState("");
   const [type, setType] = useState<ProblemType>("single");
@@ -26,8 +28,10 @@ export default function CreateProblemPage() {
   const [options, setOptions] = useState<ProblemOption[]>(defaultOptions);
 
   const createProblem = useMutation({
-    mutationFn: problemsApi.create,
-    onSuccess: () => router.push("/problems"),
+    mutationFn: (body: Record<string, unknown>) => assessmentId
+      ? assessmentsApi.addProblem(assessmentId, body)
+      : problemsApi.create(body),
+    onSuccess: () => router.push(assessmentId ? `/assessments/${assessmentId}` : "/problems"),
   });
 
   const validOptions = options.filter((option) => option.text.trim());
@@ -72,8 +76,8 @@ export default function CreateProblemPage() {
     <AppShell>
       <PageTitle
         eyebrow="Problem bank"
-        title="Create problem"
-        description="Add a manual problem to the problem bank with its type, difficulty, and topics."
+        title={assessmentId ? "Add problem to assessment" : "Create problem"}
+        description="Add a problem with its type, difficulty, tags, and options."
       />
 
       <div className="grid gap-4 lg:grid-cols-[560px_1fr]">
@@ -128,7 +132,7 @@ export default function CreateProblemPage() {
             </Field>
             <div className="flex gap-2">
               <Button disabled={createProblem.isPending || !optionsValid}>{createProblem.isPending ? "Creating..." : "Create problem"}</Button>
-              <Link href="/problems"><Button type="button" variant="secondary">Cancel</Button></Link>
+              <Link href={assessmentId ? `/assessments/${assessmentId}` : "/problems"}><Button type="button" variant="secondary">Cancel</Button></Link>
             </div>
             {createProblem.error ? <p className="text-sm text-[var(--danger)]">{createProblem.error.message || "Could not create problem."}</p> : null}
           </form>

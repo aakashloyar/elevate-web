@@ -44,21 +44,16 @@ export default function ProblemsPage() {
       },
     },
     {
-      key: "topics",
-      header: "Topics",
+      key: "tags",
+      header: "Tags",
       className: "w-[20%]",
       render: (problem) => {
-        const topics = problem.topic_ids?.length ? problem.topic_ids
-          : problem.topicIds?.length ? problem.topicIds
-            : problem.topics?.length ? problem.topics
-              : problem.tags;
-
-        return topics?.length ? (
+        return problem.tags?.length ? (
           <div className="flex flex-wrap gap-1">
-            {topics.map((topic) => (
-              <span key={topic} title={topic} className="max-w-full">
+            {problem.tags.map((tag) => (
+              <span key={tag} title={tag} className="max-w-full">
                 <Badge>
-                  <TruncatedText>{topic}</TruncatedText>
+                  <TruncatedText>{tag}</TruncatedText>
                 </Badge>
               </span>
             ))}

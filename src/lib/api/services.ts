@@ -44,10 +44,10 @@ export const problemsApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  batch: (problemIds: string[]) =>
+  batch: (problemIds: string[], includeOptions = true) =>
     request<BatchProblemResponse[]>(serviceUrls.problem, "/problems/batch", {
         method: "POST",
-        body: JSON.stringify({ problem_ids: problemIds }),
+        body: JSON.stringify({ problem_ids: problemIds, include_options: includeOptions }),
         cache: "no-store",
       }).then((problems) =>
       problems.map((problem) => ({
@@ -66,9 +66,9 @@ type BatchProblemResponse = Omit<Partial<Problem>, "type"> & {
 };
 
 export const submissionsApi = {
-  list: (userId: string) =>
+  list: (userId?: string) =>
     request<{ submissions: SubmissionSummary[] }>(serviceUrls.submission, "/submissions", {
-      query: { user_id: userId },
+      query: userId ? { user_id: userId } : undefined,
       cache: "no-store",
     }),
   get: (id: string) => request<Submission>(serviceUrls.submission, `/submissions/${id}`),

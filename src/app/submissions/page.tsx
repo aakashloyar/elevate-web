@@ -1,24 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
-import { AppShell, Button, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
+import { AppShell, Panel, PageTitle, TruncatedText } from "@/components/ui";
 import { submissionsApi } from "@/lib/api/services";
 import { formatDateTime } from "@/lib/utils";
 
-const defaultUserID = "019fd16d-8296-7039-949f-65044c31d28f";
-
 export default function SubmissionsPage() {
   const router = useRouter();
-  const [userID, setUserID] = useState(defaultUserID);
-  const [activeUserID, setActiveUserID] = useState(defaultUserID);
   const submissionsQuery = useQuery({
-    queryKey: ["submissions", activeUserID],
-    queryFn: () => submissionsApi.list(activeUserID),
-    enabled: Boolean(activeUserID),
+    queryKey: ["submissions"],
+    queryFn: () => submissionsApi.list(),
   });
 
   const submissions = submissionsQuery.data?.submissions ?? [];
@@ -26,20 +20,11 @@ export default function SubmissionsPage() {
   return (
     <AppShell>
       <PageTitle eyebrow="Submissions" title="User submissions" description="Review attempts and open an individual submission for its evaluation insights." />
-      <Panel title="Find submissions">
-        <form className="flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); setActiveUserID(userID.trim()); }}>
-          <Field label="User ID">
-            <input className={inputClass} value={userID} onChange={(event) => setUserID(event.target.value)} required />
-          </Field>
-          <Button type="submit">Load submissions</Button>
-        </form>
-      </Panel>
-
-      <Panel title="Submissions" className="mt-4">
+      <Panel title="Submissions">
         {submissionsQuery.isPending ? <p className="text-sm text-[var(--muted)]">Loading submissions...</p> : null}
         {submissionsQuery.error ? <p className="text-sm text-[var(--danger)]">{submissionsQuery.error.message}</p> : null}
         {!submissionsQuery.isPending && !submissionsQuery.error && submissions.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No submissions found for this user.</p>
+          <p className="text-sm text-[var(--muted)]">No submissions found.</p>
         ) : null}
         {submissions.length > 0 ? (
           <div className="overflow-x-auto">

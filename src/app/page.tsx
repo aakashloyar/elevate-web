@@ -4,8 +4,6 @@ import { AppShell, Badge, Panel, PageTitle } from "@/components/ui";
 const cards = [
   { label: "Assessments", value: "12", href: "/assessments", note: "create, mark, assign" },
   { label: "Problems", value: "248", href: "/problems", note: "manual + AI generated" },
-  { label: "Active attempts", value: "31", href: "/exam", note: "runner and drafts" },
-  { label: "Evaluated", value: "1.2k", href: "/results", note: "submission results" },
 ];
 
 export default function Home() {
@@ -17,7 +15,7 @@ export default function Home() {
         description="Built for fast daily work: create assessments, generate problems, run attempts, and check submissions without a heavy dashboard feeling."
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2">
         {cards.map((card) => (
           <Link key={card.label} href={card.href} className="card block p-4 hover:border-[var(--accent)]">
             <p className="text-sm text-[var(--muted)]">{card.label}</p>
