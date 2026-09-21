@@ -1,0 +1,65 @@
+src/app/problems/page.tsx
+  s_8c7c13500c0009::t_43f68bbef7a40e 47-48,51,53-54,56
+src/app/submissions/page.tsx
+  s_8c7c13500c0009::t_c55ea3dfd0aaa2 7,14-15,23,27
+src/app/problems/create/page.tsx
+  s_8c7c13500c0009::t_12634ce5ed28f8 5,8,20-21,31-34,79-80,135
+src/app/page.tsx
+  s_8c7c13500c0009::t_ef4ec08cf8647c 18
+src/lib/api/services.ts
+  s_8c7c13500c0009::t_452b7580bf1277 47,50
+  s_8c7c13500c0009::t_9adc15fa9b48fb 69,71
+src/app/assessments/[assessmentId]/page.tsx
+  s_8c7c13500c0009::t_145d59304e346c 24,50,60,62
+  s_8c7c13500c0009::t_22dddaae537565 101,103,115,117
+  s_8c7c13500c0009::t_2a6db7c6001a47 114,208
+  s_8c7c13500c0009::t_56135a211f7e50 45-46
+  s_8c7c13500c0009::t_76abc3944e99da 118
+  s_c7e5d1210f1f2d::t_3aabc11e304327 209-216
+  s_8c7c13500c0009::t_84c5b0003d43d5 3,6
+  s_8c7c13500c0009::t_818d666cc9d0ef 122-201
+  s_8c7c13500c0009::t_5f484e7b45ac5b 286,288-294,296-305
+  s_8c7c13500c0009::t_c3d1e74e19bb18 120
+  s_8c7c13500c0009::t_9a6de9ddc65b56 19,35-37,47-49,51-59,61
+src/app/globals.css
+  s_8c7c13500c0009::t_e2d51344577cfb 41-55
+src/app/submissions/[submissionId]/page.tsx
+  s_8c7c13500c0009::t_3becbe1892a929 84
+  s_8c7c13500c0009::t_0ef3934ebf23b3 51
+  s_8c7c13500c0009::t_a9a3464120cf04 12-13,52-53,172,174-202
+  s_8c7c13500c0009::t_58a40954e1793e 86-89
+  s_8c7c13500c0009::t_3148ada0995cb6 9,81-82
+  s_8c7c13500c0009::t_6fd515b3ee3938 83
+  s_8c7c13500c0009::t_9941c07c1452eb 255-266
+  s_8c7c13500c0009::t_44657ef97d3dbd 113
+  s_8c7c13500c0009::t_322b63a44fa5ee 267
+src/lib/api/types.ts
+  s_8c7c13500c0009::t_6fd515b3ee3938 128
+  s_8c7c13500c0009::t_d9c42418f22d3d 135-136,138-139
+  s_8c7c13500c0009::t_3148ada0995cb6 125,127
+  s_8c7c13500c0009::t_9941c07c1452eb 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "15eeb00693b182d35d90ba3acfb10a9dfb994d7a",
+  "prompts": {},
+  "sessions": {
+    "s_8c7c13500c0009": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a5c7-d3c8-7252-b417-cd54c02a5219",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    },
+    "s_c7e5d1210f1f2d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0adb3-71ff-7ae2-9ef3-4b4153e26101",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    }
+  }
+}
