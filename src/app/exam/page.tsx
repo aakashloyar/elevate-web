@@ -21,6 +21,7 @@ export default function ExamPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [dirtyCount, setDirtyCount] = useState(0);
+  const [clockMilliseconds, setClockMilliseconds] = useState(() => Date.now());
   const answersRef = useRef<Record<string, string[]>>({});
   const answerVersionsRef = useRef<Record<string, number>>({});
   const dirtyAnswersRef = useRef(new Set<string>());
@@ -38,6 +39,15 @@ export default function ExamPage() {
     queryKey: ["submission-status", attemptId],
     queryFn: () => submissionsApi.status(attemptId),
   });
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setClockMilliseconds(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const remainingSeconds = statusQuery.data?.expires_at
+    ? Math.max(0, Math.ceil((new Date(statusQuery.data.expires_at).getTime() - clockMilliseconds) / 1000))
+    : null;
   const saveBatch = useMutation({
     mutationFn: (payload: PendingSave) =>
       submissionsApi.saveAnswerBatch(
@@ -138,7 +148,9 @@ export default function ExamPage() {
         <div className="flex items-center gap-2 text-sm">
           <span>Status:</span>
           {statusQuery.data ? <StatusBadge value={statusQuery.data.status} /> : <Badge>mock/inactive</Badge>}
-          <span className="text-[var(--muted)]">Expires: {statusQuery.data?.expires_at ?? "—"}</span>
+          <span className="text-[var(--muted)]">
+            {remainingSeconds !== null ? "Time remaining:" : "Expires:"} {remainingSeconds !== null ? formatRemainingTime(remainingSeconds) : statusQuery.data?.expires_at ?? "—"}
+          </span>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => void saveDirtyAnswers()} disabled={saveBatch.isPending || dirtyCount === 0}>
@@ -282,4 +294,15 @@ export default function ExamPage() {
 
 function normalizeProblemsPage(page: { problems: ProblemView[] } | ProblemView[]): ProblemView[] {
   return Array.isArray(page) ? page : page.problems;
+}
+
+function formatRemainingTime(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }

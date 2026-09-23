@@ -31,6 +31,7 @@ export const assessmentsApi = {
     }),
   getProblems: (assessmentId: string) =>
     request<{ problem_ids: string[] }>(serviceUrls.assessment, `/assessments/${assessmentId}/problems`, {
+      query: { _fresh: Date.now() },
       cache: "no-store",
     }),
 };
@@ -50,6 +51,19 @@ export const problemsApi = {
         body: JSON.stringify({ problem_ids: problemIds, include_options: includeOptions }),
         cache: "no-store",
       }).then((problems) =>
+      problems.map((problem) => ({
+        ...problem,
+        id: problem.id ?? problem.problem_id ?? "",
+        type: problem.type ?? problem.problem_type ?? "single",
+        difficulty: problem.difficulty ?? "medium",
+      })),
+    ),
+  batchForAuthor: (problemIds: string[], includeOptions = true) =>
+    request<BatchProblemResponse[]>(serviceUrls.problem, "/problems/batch-for-author", {
+      method: "POST",
+      body: JSON.stringify({ problem_ids: problemIds, include_options: includeOptions }),
+      cache: "no-store",
+    }).then((problems) =>
       problems.map((problem) => ({
         ...problem,
         id: problem.id ?? problem.problem_id ?? "",

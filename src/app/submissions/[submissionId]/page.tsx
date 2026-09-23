@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
@@ -17,6 +17,7 @@ export default function SubmissionDetailPage() {
   const queryClient = useQueryClient();
   const submissionId = params.submissionId;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [clockMilliseconds, setClockMilliseconds] = useState(() => Date.now());
 
   const submissionQuery = useQuery({
     queryKey: ["submission", submissionId],
@@ -39,8 +40,20 @@ export default function SubmissionDetailPage() {
 
   const submission = submissionQuery.data;
   const expired = submission?.status === "EXPIRED";
+  const isInProgress = submission?.status === "IN_PROGRESS";
+  const showEvaluationInsights = Boolean(submission && ["SUBMITTED", "UNDER_EVALUATION", "EVALUATED", "EVALUATION_FAILED"].includes(submission.status));
   const isStartable = submission?.status === "CREATED";
   const isResumable = submission?.status === "IN_PROGRESS" && !expired;
+  const totalDurationSeconds = evaluationQuery.data?.duration_seconds ?? submission?.duration_seconds;
+  const remainingSeconds = isInProgress && submission?.expires_at
+    ? Math.max(0, Math.ceil((new Date(submission.expires_at).getTime() - clockMilliseconds) / 1000))
+    : null;
+
+  useEffect(() => {
+    if (!isInProgress) return;
+    const interval = window.setInterval(() => setClockMilliseconds(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [isInProgress]);
   const insightCounts = useMemo(() => {
     const counts = { correct: 0, incorrect: 0, partially_correct: 0, skipped: 0 };
     for (const question of evaluationQuery.data?.questions ?? []) counts[question.status] += 1;
@@ -71,17 +84,31 @@ export default function SubmissionDetailPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Panel title="Submission information">
+        <Panel title="Submission information" className={!showEvaluationInsights ? "lg:col-span-2" : undefined}>
           {submissionQuery.isPending ? (
             <p className="text-sm text-[var(--muted)]">Loading submission...</p>
           ) : submissionQuery.error ? (
             <p className="text-sm text-[var(--danger)]">{submissionQuery.error.message}</p>
           ) : submission ? (
             <div className="grid gap-3 text-sm md:grid-cols-2">
+              {isInProgress ? (
+                <div className={`rounded-xl border p-4 md:col-span-2 ${remainingSeconds !== null && remainingSeconds <= 60 ? "border-red-300 bg-red-50" : "border-blue-200 bg-blue-50"}`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Time remaining</p>
+                      <p className="mt-1 font-mono text-3xl font-bold tracking-wider text-[var(--accent)]" aria-live="polite">
+                        {formatTimer(remainingSeconds)}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">Your answers are saved automatically while you work.</p>
+                    </div>
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-2xl shadow-sm" aria-hidden="true">⏱</div>
+                  </div>
+                </div>
+              ) : null}
               <Info label="Assessment Name" value={evaluationQuery.data?.assessment_title || submission.assessment_id} />
               <Info label="User Name" value={evaluationQuery.data?.user_name || submission.user_id} />
-              <Info label="Total duration" value={formatDuration(evaluationQuery.data?.duration_seconds)} />
-              <Info label="Time taken" value={formatDuration(timeTakenSeconds(submission.started_at, submission.submitted_at ?? (expired ? submission.expires_at : null)))} />
+              <Info label="Total duration" value={formatDuration(totalDurationSeconds)} />
+              {!isInProgress ? <Info label="Time taken" value={formatDuration(timeTakenSeconds(submission.started_at, submission.submitted_at ?? (expired ? submission.expires_at : null)))} /> : null}
               <Info label="Started at" value={formatDateTime(submission.started_at)} />
               <div className="rounded border border-[var(--line)] bg-white px-3 py-2">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Status</p>
@@ -104,31 +131,31 @@ export default function SubmissionDetailPage() {
           ) : null}
         </Panel>
 
-        <Panel
-          title="Evaluation insights"
-          action={submission ? <Link className="link text-sm" href={`/assessments/${submission.assessment_id}`}>Back to assessment</Link> : null}
-        >
-        {submission ? (
-          <div className="mb-4 grid gap-3 sm:grid-cols-2">
-            <Info label="Score" value={`${evaluationQuery.data?.scored_marks ?? evaluationQuery.data?.score ?? "—"} / ${evaluationQuery.data?.total_marks ?? "—"}`} />
-            <Info label="Problems" value={`${submission.problems?.length ?? 0}`} />
-          </div>
-        ) : null}
-        {evaluationQuery.isPending ? (
-          <p className="text-sm text-[var(--muted)]">Loading evaluation...</p>
-        ) : !evaluationQuery.data ? (
-          <p className="text-sm text-[var(--muted)]">Evaluation details will appear after this submission is evaluated.</p>
-        ) : (
-          <>
+        {showEvaluationInsights ? (
+          <Panel
+            title="Evaluation insights"
+            action={submission ? <Link className="link text-sm" href={`/assessments/${submission.assessment_id}`}>Back to assessment</Link> : null}
+          >
+          {submission ? (
+            <div className="mb-4 grid gap-3 sm:grid-cols-2">
+              <Info label="Score" value={`${evaluationQuery.data?.scored_marks ?? evaluationQuery.data?.score ?? "—"} / ${evaluationQuery.data?.total_marks ?? "—"}`} />
+              <Info label="Problems" value={`${submission.problems?.length ?? 0}`} />
+            </div>
+          ) : null}
+          {evaluationQuery.isPending ? (
+            <p className="text-sm text-[var(--muted)]">Loading evaluation...</p>
+          ) : !evaluationQuery.data ? (
+            <p className="text-sm text-[var(--muted)]">Evaluation details will appear after this submission is evaluated.</p>
+          ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               <InsightCard label="Correct" value={insightCounts.correct} tone="green" />
               <InsightCard label="Partially correct" value={insightCounts.partially_correct} tone="yellow" />
               <InsightCard label="Incorrect" value={insightCounts.incorrect} tone="red" />
               <InsightCard label="Skipped" value={insightCounts.skipped} tone="blue" />
             </div>
-          </>
-        )}
-        </Panel>
+          )}
+          </Panel>
+        ) : null}
       </div>
 
       {evaluationQuery.data && currentQuestion ? (
@@ -257,6 +284,14 @@ function formatDuration(seconds?: number | null) {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
+}
+
+function formatTimer(seconds?: number | null) {
+  if (seconds === undefined || seconds === null || seconds < 0) return "—";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 function timeTakenSeconds(start?: string | null, end?: string | null) {
