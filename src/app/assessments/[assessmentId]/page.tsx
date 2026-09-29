@@ -7,7 +7,7 @@ import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, EmptyState, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
 import { assessmentsApi, generationApi, problemsApi, submissionsApi } from "@/lib/api/services";
-import type { Difficulty, Problem, ProblemOption, ProblemType } from "@/lib/api/types";
+import type { AssessmentMarkingScheme, Difficulty, MarkingSchemeMarks, Problem, ProblemOption, ProblemType } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils";
 
 const defaultOptions = [
@@ -17,6 +17,11 @@ const defaultOptions = [
   { text: "O(n log n)", is_correct: false },
 ];
 const PROBLEMS_BATCH_SIZE = 12;
+const defaultMarkingScheme: AssessmentMarkingScheme = {
+  single: { correct: 4, incorrect: -1, skipped: 0 },
+  multiple: { correct: 4, incorrect: -2, skipped: 0 },
+  numerical: { correct: 4, incorrect: 0, skipped: 0 },
+};
 
 export default function AssessmentDetailPage() {
   const params = useParams<{ assessmentId: string }>();
@@ -24,6 +29,8 @@ export default function AssessmentDetailPage() {
   const [currentAttachedProblemIndex, setCurrentAttachedProblemIndex] = useState(0);
   const [submissionDialogOpen, setSubmissionDialogOpen] = useState(false);
   const [submissionDuration, setSubmissionDuration] = useState("");
+  const [submissionMarkingScheme, setSubmissionMarkingScheme] = useState<AssessmentMarkingScheme>(defaultMarkingScheme);
+  const [addProblemMenuOpen, setAddProblemMenuOpen] = useState(false);
   const [problemIds, setProblemIds] = useState<string[] | null>(null);
   const [problemIdsError, setProblemIdsError] = useState<Error | null>(null);
   const [problemIdsForAssessmentId, setProblemIdsForAssessmentId] = useState<string | null>(null);
@@ -33,6 +40,16 @@ export default function AssessmentDetailPage() {
     queryKey: ["assessment", assessmentId],
     queryFn: () => assessmentsApi.get(assessmentId),
     enabled: Boolean(assessmentId),
+  });
+  const markingSchemeQuery = useQuery({
+    queryKey: ["assessment-marking-scheme", assessmentId],
+    queryFn: () => assessmentsApi.getMarkingScheme(assessmentId),
+    enabled: Boolean(assessmentId),
+    staleTime: 5 * 60 * 1000,
+  });
+  const updateMarkingScheme = useMutation({
+    mutationFn: (scheme: AssessmentMarkingScheme) => assessmentsApi.updateMarkingScheme(assessmentId, scheme),
+    onSuccess: (scheme) => markingSchemeQuery.refetch().then(() => scheme),
   });
 
   useEffect(() => {
@@ -90,6 +107,7 @@ export default function AssessmentDetailPage() {
         assessment_id: assessmentId,
         user_id: assessment?.created_by,
         duration_seconds: Number(submissionDuration),
+        marking_scheme: submissionMarkingScheme,
       }),
     onSuccess: (data) => router.push(`/submissions/${data.submission_id}`),
   });
@@ -100,13 +118,29 @@ export default function AssessmentDetailPage() {
         eyebrow="Assessment"
         title={assessment?.title ?? "Assessment detail"}
         description={assessment?.description || "Review this assessment and attach manual or AI-generated problems."}
+        action={<Link className="link" href="/assessments">← Back to assessments</Link>}
       />
 
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-4">
+        <div className="grid items-stretch gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="grid gap-4">
         <Panel
+          className="h-full"
           title="Assessment info"
-          action={<Link className="link" href="/assessments">Back to assessments</Link>}
+          action={
+            <Button
+              type="button"
+              className="px-3 py-1.5 text-sm"
+              disabled={createSubmission.isPending || !assessment?.created_by || !assessment?.duration_seconds}
+              onClick={() => {
+                setSubmissionDuration(String(assessment?.duration_seconds ?? ""));
+                setSubmissionMarkingScheme(markingSchemeQuery.data ?? defaultMarkingScheme);
+                setSubmissionDialogOpen(true);
+              }}
+            >
+              {createSubmission.isPending ? "Creating..." : "Create submission"}
+            </Button>
+          }
         >
             {assessmentQuery.isLoading ? (
               <p className="text-sm text-[var(--muted)]">Loading assessment...</p>
@@ -133,7 +167,34 @@ export default function AssessmentDetailPage() {
             ) : null}
         </Panel>
 
-          <Panel title={attachedProblemIds.length > 0 ? `Attached problems ${currentAttachedProblemIndex + 1} of ${attachedProblemIds.length}` : "Attached problems"}>
+        </div>
+
+        <div className="grid h-full gap-4">
+        <MarkingSchemePanel
+          key={markingSchemeQuery.data ? "loaded-marking-scheme" : "default-marking-scheme"}
+          scheme={markingSchemeQuery.data ?? defaultMarkingScheme}
+          loading={markingSchemeQuery.isLoading}
+          error={markingSchemeQuery.error?.message}
+          saving={updateMarkingScheme.isPending}
+          saveError={updateMarkingScheme.error?.message}
+          onSave={(scheme) => updateMarkingScheme.mutate(scheme)}
+        />
+        </div>
+        </div>
+
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <div className="min-w-0">
+
+          <Panel
+            title={attachedProblemIds.length > 0 ? `Attached problems ${currentAttachedProblemIndex + 1} of ${attachedProblemIds.length}` : "Attached problems"}
+            action={
+              <div className="relative">
+                <Button type="button" className="px-3 py-1.5 text-sm" onClick={() => setAddProblemMenuOpen((open) => !open)}>
+                  Add problem
+                </Button>
+              </div>
+            }
+          >
             {!hasLoadedProblemIds || problemsQuery.isPending ? (
               <p className="text-sm text-[var(--muted)]">Loading problems...</p>
             ) : problemIdsError || problemsQuery.error ? (
@@ -172,89 +233,43 @@ export default function AssessmentDetailPage() {
               </div>
             )}
           </Panel>
-        </div>
+          </div>
 
-          <div className="grid content-start gap-4">
-            <Panel title="Add problem">
-              <p className="text-sm leading-6 text-[var(--muted)]">Choose how you want to add a problem to this assessment.</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <Link href={`/problems/create?assessmentId=${assessmentId}`}>
-                  <Button className="w-full">Add manually</Button>
-                </Link>
-                <Link href={`/generation?assessmentId=${assessmentId}`}>
-                  <Button className="w-full">Generate with AI</Button>
-                </Link>
-              </div>
-            </Panel>
-            <Panel title="Submission">
-              <p className="text-sm leading-6 text-[var(--muted)]">
-                Create an attempt for this assessment and start it when you are ready.
-              </p>
-              <Button
-                className="mt-3 w-full"
-                disabled={createSubmission.isPending || !assessment?.created_by || !assessment?.duration_seconds}
-                onClick={() => {
-                  setSubmissionDuration(String(assessment?.duration_seconds ?? ""));
-                  setSubmissionDialogOpen(true);
-                }}
-              >
-                {createSubmission.isPending ? "Creating submission..." : "Create submission"}
-              </Button>
-              {createSubmission.error ? <p className="mt-2 text-sm text-[var(--danger)]">{createSubmission.error.message}</p> : null}
-            </Panel>
-            {attachedProblemIds.length > 0 && visibleProblems.length > 0 ? (
-              <Panel title="Questions">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <span className="text-xs text-[var(--muted)]">{attachedProblemIds.length} attached</span>
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {visibleProblems.map((problem, pageIndex) => {
-                    const index = attachedProblemsStart + pageIndex;
-                    return (
-                      <button
-                        key={problem.id || problem.problem_id || `problem-selector-${index}`}
-                        type="button"
-                        onClick={() => setCurrentAttachedProblemIndex(index)}
-                        className={`rounded border px-2 py-2 text-sm font-semibold ${index === currentAttachedProblemIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
-                      >
-                        {index + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-                {attachedProblemIds.length > PROBLEMS_BATCH_SIZE ? (
-                  <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--line)] pt-3">
-                    <button
-                      type="button"
-                      className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Previous attached problems"
-                      title="Previous problems"
-                      disabled={attachedProblemsStart === 0}
-                      onClick={() => setCurrentAttachedProblemIndex(attachedProblemsStart - PROBLEMS_BATCH_SIZE)}
-                    >←</button>
-                    <span className="text-center text-xs text-[var(--muted)]">
-                          Page {Math.floor(attachedProblemsStart / PROBLEMS_BATCH_SIZE) + 1} of {Math.ceil(attachedProblemIds.length / PROBLEMS_BATCH_SIZE)}
-                    </span>
-                    <button
-                      type="button"
-                      className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label="Next attached problems"
-                      title="Next problems"
-                          disabled={attachedProblemsStart + PROBLEMS_BATCH_SIZE >= attachedProblemIds.length || problemsQuery.isFetchingNextPage}
-                      onClick={async () => {
-                        if (attachedProblemsStart + PROBLEMS_BATCH_SIZE >= attachedProblemIds.length) return;
-                        if (attachedProblemsStart + PROBLEMS_BATCH_SIZE >= loadedProblems.length && problemsQuery.hasNextPage) {
-                          await problemsQuery.fetchNextPage();
-                        }
-                        setCurrentAttachedProblemIndex(attachedProblemsStart + PROBLEMS_BATCH_SIZE);
-                      }}
-                    >→</button>
-                  </div>
-                ) : null}
-              </Panel>
-            ) : null}
+          <div className="min-w-0">
+            <QuestionsPanel
+              attachedProblemIds={attachedProblemIds}
+              visibleProblems={visibleProblems}
+              attachedProblemsStart={attachedProblemsStart}
+              currentAttachedProblemIndex={currentAttachedProblemIndex}
+              loadedProblemsCount={loadedProblems.length}
+              hasNextPage={problemsQuery.hasNextPage}
+              isFetchingNextPage={problemsQuery.isFetchingNextPage}
+              onSelect={setCurrentAttachedProblemIndex}
+              onLoadNextPage={problemsQuery.fetchNextPage}
+            />
           </div>
       </div>
+      </div>
+
+      {addProblemMenuOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="presentation">
+          <div className="w-full max-w-md rounded-lg border border-[var(--line)] bg-[var(--paper)] p-5 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="add-problem-title">
+            <h2 id="add-problem-title" className="text-lg font-semibold">Add problem</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Choose how you want to add a problem to this assessment.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Link href={`/problems/create?assessmentId=${assessmentId}`} onClick={() => setAddProblemMenuOpen(false)}>
+                <Button className="w-full">Add manually</Button>
+              </Link>
+              <Link href={`/generation?assessmentId=${assessmentId}`} onClick={() => setAddProblemMenuOpen(false)}>
+                <Button className="w-full">Generate with AI</Button>
+              </Link>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <Button type="button" variant="secondary" onClick={() => setAddProblemMenuOpen(false)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {submissionDialogOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="presentation">
@@ -275,6 +290,10 @@ export default function AssessmentDetailPage() {
                 autoFocus
               />
             </label>
+            <div className="mt-4 rounded border border-[var(--line)] bg-[var(--paper)] p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Marking scheme for this submission</p>
+              <MarkingSchemeEditor scheme={submissionMarkingScheme} onChange={setSubmissionMarkingScheme} />
+            </div>
             {createSubmission.error ? <p className="mt-2 text-sm text-[var(--danger)]">{createSubmission.error.message}</p> : null}
             <div className="mt-5 flex justify-end gap-2">
               <Button type="button" variant="secondary" onClick={() => setSubmissionDialogOpen(false)} disabled={createSubmission.isPending}>
@@ -300,6 +319,199 @@ function Info({ label, value }: { label: string; value: string }) {
     <div className="rounded border border-[var(--line)] bg-white px-3 py-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{label}</p>
       <TruncatedText className="mt-1 font-medium">{value}</TruncatedText>
+    </div>
+  );
+}
+
+function QuestionsPanel({
+  attachedProblemIds,
+  visibleProblems,
+  attachedProblemsStart,
+  currentAttachedProblemIndex,
+  loadedProblemsCount,
+  hasNextPage,
+  isFetchingNextPage,
+  onSelect,
+  onLoadNextPage,
+}: {
+  attachedProblemIds: string[];
+  visibleProblems: Problem[];
+  attachedProblemsStart: number;
+  currentAttachedProblemIndex: number;
+  loadedProblemsCount: number;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  onSelect: (index: number) => void;
+  onLoadNextPage: () => Promise<unknown>;
+}) {
+  if (attachedProblemIds.length === 0 || visibleProblems.length === 0) return null;
+
+  return (
+    <Panel title="Questions">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <span className="text-xs text-[var(--muted)]">{attachedProblemIds.length} attached</span>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {visibleProblems.map((problem, pageIndex) => {
+          const index = attachedProblemsStart + pageIndex;
+          return (
+            <button
+              key={problem.id || problem.problem_id || `problem-selector-${index}`}
+              type="button"
+              onClick={() => onSelect(index)}
+              className={`rounded border px-2 py-2 text-sm font-semibold ${index === currentAttachedProblemIndex ? "border-[var(--accent)] bg-[var(--accent-weak)]" : "border-[var(--line)] bg-white"}`}
+            >
+              {index + 1}
+            </button>
+          );
+        })}
+      </div>
+      {attachedProblemIds.length > PROBLEMS_BATCH_SIZE ? (
+        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--line)] pt-3">
+          <button
+            type="button"
+            className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Previous attached problems"
+            title="Previous problems"
+            disabled={attachedProblemsStart === 0}
+            onClick={() => onSelect(attachedProblemsStart - PROBLEMS_BATCH_SIZE)}
+          >←</button>
+          <span className="text-center text-xs text-[var(--muted)]">
+            Page {Math.floor(attachedProblemsStart / PROBLEMS_BATCH_SIZE) + 1} of {Math.ceil(attachedProblemIds.length / PROBLEMS_BATCH_SIZE)}
+          </span>
+          <button
+            type="button"
+            className="rounded border border-[var(--line)] bg-white px-3 py-1 text-lg leading-none disabled:cursor-not-allowed disabled:opacity-40"
+            aria-label="Next attached problems"
+            title="Next problems"
+            disabled={attachedProblemsStart + PROBLEMS_BATCH_SIZE >= attachedProblemIds.length || isFetchingNextPage}
+            onClick={async () => {
+              if (attachedProblemsStart + PROBLEMS_BATCH_SIZE >= attachedProblemIds.length) return;
+              if (attachedProblemsStart + PROBLEMS_BATCH_SIZE >= loadedProblemsCount && hasNextPage) {
+                await onLoadNextPage();
+              }
+              onSelect(attachedProblemsStart + PROBLEMS_BATCH_SIZE);
+            }}
+          >→</button>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
+function MarkingSchemePanel({
+  scheme,
+  loading,
+  error,
+  saving,
+  saveError,
+  onSave,
+}: {
+  scheme: AssessmentMarkingScheme;
+  loading: boolean;
+  error?: string;
+  saving: boolean;
+  saveError?: string;
+  onSave: (scheme: AssessmentMarkingScheme) => void;
+}) {
+  const [draft, setDraft] = useState<AssessmentMarkingScheme>(scheme);
+
+  function update(type: keyof Pick<AssessmentMarkingScheme, "single" | "multiple" | "numerical">, field: keyof MarkingSchemeMarks, value: string) {
+    setDraft((current) => ({
+      ...current,
+      [type]: { ...current[type], [field]: Number(value) },
+    }));
+  }
+
+  return (
+    <Panel className="h-full" title="Marking scheme">
+      {loading ? <p className="text-sm text-[var(--muted)]">Loading marking scheme...</p> : null}
+      {error ? <p className="mb-3 text-sm text-[var(--danger)]">Unable to load the saved scheme ({error}). Showing defaults; save to create it.</p> : null}
+      {!loading ? (
+        <form
+          className="grid gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave(draft);
+          }}
+        >
+          <div className="overflow-x-auto rounded border border-[var(--line)]">
+            <table className="w-full table-fixed text-sm">
+              <thead className="bg-[var(--paper)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+                <tr>
+                  <th className="w-[28%] px-2 py-2">Type</th>
+                  <th className="px-2 py-2 text-center">Correct</th>
+                  <th className="px-2 py-2 text-center">Incorrect</th>
+                  <th className="px-2 py-2 text-center">Skipped</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(["single", "multiple", "numerical"] as const).map((type) => (
+                  <tr key={type} className="border-t border-[var(--line)]">
+                    <td className="px-2 py-2 font-semibold capitalize">{type}</td>
+                    {(["correct", "incorrect", "skipped"] as const).map((field) => (
+                      <td key={field} className="px-2 py-2">
+                        <input
+                          className={`${inputClass} w-full px-2 text-center`}
+                          type="number"
+                          step="any"
+                          value={draft[type][field]}
+                          onChange={(event) => update(type, field, event.target.value)}
+                          aria-label={`${type} ${field} marks`}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-col items-center gap-3">
+            {saveError ? <p className="text-center text-sm text-[var(--danger)]">{saveError}</p> : null}
+            <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Update marking scheme"}</Button>
+          </div>
+        </form>
+      ) : null}
+    </Panel>
+  );
+}
+
+function MarkingSchemeEditor({
+  scheme,
+  onChange,
+}: {
+  scheme: AssessmentMarkingScheme;
+  onChange: (scheme: AssessmentMarkingScheme) => void;
+}) {
+  function update(type: "single" | "multiple" | "numerical", field: keyof MarkingSchemeMarks, value: string) {
+    onChange({
+      ...scheme,
+      [type]: { ...scheme[type], [field]: Number(value) },
+    });
+  }
+
+  return (
+    <div className="mt-2 grid gap-2 text-xs">
+      <div className="grid grid-cols-[1fr_repeat(3,auto)] gap-2 px-1 font-semibold text-[var(--muted)]">
+        <span>Type</span><span>Correct</span><span>Incorrect</span><span>Skipped</span>
+      </div>
+      {(["single", "multiple", "numerical"] as const).map((type) => (
+        <div key={type} className="grid grid-cols-[1fr_repeat(3,auto)] items-center gap-2">
+          <span className="font-semibold capitalize">{type}</span>
+          {(["correct", "incorrect", "skipped"] as const).map((field) => (
+            <input
+              key={field}
+              className={`${inputClass} w-20 px-2 py-1 text-xs`}
+              type="number"
+              step="any"
+              value={scheme[type][field]}
+              onChange={(event) => update(type, field, event.target.value)}
+              aria-label={`${type} ${field} marks for submission`}
+            />
+          ))}
+        </div>
+      ))}
+      <p className="mt-1 text-[var(--muted)]">Correct / Incorrect / Skipped marks</p>
     </div>
   );
 }

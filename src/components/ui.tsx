@@ -34,16 +34,23 @@ export function PageTitle({
   eyebrow,
   title,
   description,
+  action,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="mb-5 border-b border-[var(--line)] pb-4">
-      {eyebrow ? <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{eyebrow}</p> : null}
-      <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-      {description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">{description}</p> : null}
+      <div className={action ? "grid items-end gap-4 md:grid-cols-[minmax(0,1fr)_auto]" : undefined}>
+        <div>
+          {eyebrow ? <p className="mb-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent)]">{eyebrow}</p> : null}
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
+          {description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)]">{description}</p> : null}
+        </div>
+        {action ? <div>{action}</div> : null}
+      </div>
     </div>
   );
 }

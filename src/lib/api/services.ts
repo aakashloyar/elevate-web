@@ -3,6 +3,7 @@ import { request } from "@/lib/api/http";
 import type {
   Assessment,
   AssessmentListResponse,
+  AssessmentMarkingScheme,
   CreateSubmissionResponse,
   Evaluation,
   GenerationJob,
@@ -33,6 +34,15 @@ export const assessmentsApi = {
     request<{ problem_ids: string[] }>(serviceUrls.assessment, `/assessments/${assessmentId}/problems`, {
       query: { _fresh: Date.now() },
       cache: "no-store",
+    }),
+  getMarkingScheme: (assessmentId: string) =>
+    request<AssessmentMarkingScheme>(serviceUrls.assessment, `/assessments/${assessmentId}/marking-scheme`, {
+      cache: "no-store",
+    }),
+  updateMarkingScheme: (assessmentId: string, body: AssessmentMarkingScheme) =>
+    request<AssessmentMarkingScheme>(serviceUrls.assessment, `/assessments/${assessmentId}/marking-scheme`, {
+      method: "PUT",
+      body: JSON.stringify(body),
     }),
 };
 

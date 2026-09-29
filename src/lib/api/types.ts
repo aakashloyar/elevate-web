@@ -26,6 +26,19 @@ export type AssessmentListResponse = {
   assessments: Assessment[];
 };
 
+export type AssessmentMarkingScheme = {
+  assessment_id?: string;
+  single: MarkingSchemeMarks;
+  multiple: MarkingSchemeMarks;
+  numerical: MarkingSchemeMarks;
+};
+
+export type MarkingSchemeMarks = {
+  correct: number;
+  incorrect: number;
+  skipped: number;
+};
+
 export type ProblemOption = {
   id?: string;
   text: string;
@@ -77,6 +90,7 @@ export type Submission = {
   submitted_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  marking_scheme?: AssessmentMarkingScheme;
   problems?: Array<{
     problem_id: string;
     problem_type: ProblemType;

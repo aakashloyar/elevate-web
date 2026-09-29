@@ -93,7 +93,7 @@ export default function ExamPage() {
   const selectorStart = Math.floor(currentIndex / PROBLEMS_PAGE_SIZE) * PROBLEMS_PAGE_SIZE;
   const selectorProblems = problems.slice(selectorStart, selectorStart + PROBLEMS_PAGE_SIZE);
   const selected = useMemo(
-    () => answers[current?.id] ?? current?.draft_answer ?? [],
+    () => answers[current?.id] ?? [],
     [answers, current],
   );
 
@@ -122,7 +122,7 @@ export default function ExamPage() {
 
   function toggle(optionId: string) {
     if (!current) return;
-    const existing = answersRef.current[current.id] ?? current.draft_answer ?? [];
+    const existing = answersRef.current[current.id] ?? [];
     if (current.type === "single" || current.type === "numerical") {
       setAnswer(current.id, [optionId]);
       return;
@@ -136,27 +136,35 @@ export default function ExamPage() {
     <AppShell>
       <PageTitle
         eyebrow="Exam runner"
-        title="Attempt problems with saved draft answers"
-        description="This page calls the runner endpoint and displays draft answers returned by submission service through the runner."
+        title="Attempt problems"
+        description="Answer the questions and your changes will be saved automatically."
       />
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 card p-3">
-        <label className="text-sm">
-          Attempt ID{" "}
-          <input className="ml-2 rounded border border-[var(--line)] bg-white px-2 py-1" value={attemptId} onChange={(event) => setAttemptId(event.target.value)} />
-        </label>
-        <div className="flex items-center gap-2 text-sm">
-          <span>Status:</span>
-          {statusQuery.data ? <StatusBadge value={statusQuery.data.status} /> : <Badge>mock/inactive</Badge>}
-          <span className="text-[var(--muted)]">
-            {remainingSeconds !== null ? "Time remaining:" : "Expires:"} {remainingSeconds !== null ? formatRemainingTime(remainingSeconds) : statusQuery.data?.expires_at ?? "—"}
-          </span>
+      <div className="mb-4 overflow-hidden card">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line)] p-4">
+          <label className="text-sm">
+            Attempt ID{" "}
+            <input className="ml-2 rounded border border-[var(--line)] bg-white px-2 py-1" value={attemptId} onChange={(event) => setAttemptId(event.target.value)} />
+          </label>
+          <div className="flex items-center gap-2 text-sm">
+            <span>Status:</span>
+            {statusQuery.data ? <StatusBadge value={statusQuery.data.status} /> : <Badge>mock/inactive</Badge>}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => void saveDirtyAnswers()} disabled={saveBatch.isPending || dirtyCount === 0}>
+              {saveBatch.isPending ? "Saving..." : "Save drafts"}
+            </Button>
+            <Button onClick={() => submitSubmission.mutate()} disabled={submitSubmission.isPending}>Submit</Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => void saveDirtyAnswers()} disabled={saveBatch.isPending || dirtyCount === 0}>
-            {saveBatch.isPending ? "Saving..." : "Save drafts"}
-          </Button>
-          <Button onClick={() => submitSubmission.mutate()} disabled={submitSubmission.isPending}>Submit</Button>
+        <div className={`flex items-center justify-between gap-4 px-4 py-3 ${remainingSeconds !== null && remainingSeconds <= 60 ? "bg-red-50" : "bg-blue-50"}`}>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Time remaining</p>
+            <p className={`mt-1 font-mono text-3xl font-bold tracking-wider ${remainingSeconds !== null && remainingSeconds <= 60 ? "text-red-700" : "text-[var(--accent)]"}`} aria-live="polite">
+              {remainingSeconds !== null ? formatRemainingTime(remainingSeconds) : "—"}
+            </p>
+          </div>
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl shadow-sm" aria-hidden="true">⏱</div>
         </div>
       </div>
 
@@ -300,9 +308,5 @@ function formatRemainingTime(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-  }
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
