@@ -30,7 +30,7 @@ export default function AssessmentsPage() {
       key: "created_by",
       header: "Writer",
       className: "w-[18%]",
-      render: (assessment) => <TruncatedText className="text-[var(--muted)]">{assessment.created_by || "—"}</TruncatedText>,
+      render: (assessment) => <TruncatedText className="text-[var(--muted)]">{assessment.created_by_name || assessment.created_by || "—"}</TruncatedText>,
     },
     {
       key: "created",

@@ -36,6 +36,11 @@ export default function ProblemsPage() {
       render: (problem) => <Badge>{problem.difficulty}</Badge>,
     },
     {
+      key: "created_by",
+      header: "Writer",
+      render: (problem) => <TruncatedText className="text-[var(--muted)]">{problem.created_by_name || problem.created_by || "—"}</TruncatedText>,
+    },
+    {
       key: "source",
       header: "Source",
       render: (problem) => {

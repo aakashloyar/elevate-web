@@ -90,9 +90,9 @@ type BatchProblemResponse = Omit<Partial<Problem>, "type"> & {
 };
 
 export const submissionsApi = {
-  list: (userId?: string) =>
+  list: (query?: Record<string, string | number | undefined>) =>
     request<{ submissions: SubmissionSummary[] }>(serviceUrls.submission, "/submissions", {
-      query: userId ? { user_id: userId } : undefined,
+      query,
       cache: "no-store",
     }),
   get: (id: string) => request<Submission>(serviceUrls.submission, `/submissions/${id}`),

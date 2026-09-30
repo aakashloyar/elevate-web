@@ -18,6 +18,7 @@ export type Assessment = {
   description?: string;
   duration_seconds?: number;
   created_by?: string;
+  created_by_name?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -49,6 +50,7 @@ export type Problem = {
   id: string;
   problem_id?: string;
   created_by?: string;
+  created_by_name?: string;
   title?: string;
   statement?: string;
   type: ProblemType;
@@ -83,6 +85,7 @@ export type Submission = {
   id: string;
   assessment_id: string;
   user_id: string;
+  user_name?: string;
   status: SubmissionStatus;
   duration_seconds?: number;
   started_at?: string | null;
@@ -101,6 +104,7 @@ export type Submission = {
 
 export type SubmissionSummary = Pick<Submission, "id" | "assessment_id" | "user_id" | "status" | "started_at" | "expires_at" | "submitted_at" | "created_at"> & {
   duration_seconds: number;
+  user_name?: string;
 };
 
 export type CreateSubmissionResponse = {
