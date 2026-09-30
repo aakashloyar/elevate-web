@@ -105,6 +105,7 @@ export type Submission = {
 export type SubmissionSummary = Pick<Submission, "id" | "assessment_id" | "user_id" | "status" | "started_at" | "expires_at" | "submitted_at" | "created_at"> & {
   duration_seconds: number;
   user_name?: string;
+  assessment_title?: string;
 };
 
 export type CreateSubmissionResponse = {

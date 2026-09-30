@@ -21,7 +21,7 @@ export default function SubmissionsPage() {
     {
       key: "assessment",
       header: "Assessment",
-      render: (submission) => <TruncatedText>{submission.assessment_id}</TruncatedText>,
+      render: (submission) => <TruncatedText>{submission.assessment_title || submission.assessment_id}</TruncatedText>,
     },
     {
       key: "user",
