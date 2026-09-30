@@ -1,0 +1,30 @@
+src/lib/api/types.ts
+  s_8c7c13500c0009::t_5196d3bb7185f8 21,53,88
+  s_8c7c13500c0009::t_84035087ae8ea8 107
+src/app/submissions/page.tsx
+  s_8c7c13500c0009::t_5196d3bb7185f8 27-31
+  s_8c7c13500c0009::t_2420e56ce42a48 4,6,8,11-12,15-26,32-46,51-64
+src/app/problems/page.tsx
+  s_8c7c13500c0009::t_5196d3bb7185f8 39-42
+  s_8c7c13500c0009::t_c8fd468b6b79bb 38
+src/app/assessments/page.tsx
+  s_8c7c13500c0009::t_5196d3bb7185f8 33
+src/lib/api/services.ts
+  s_8c7c13500c0009::t_a387babac6cbbd 93,95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "37fc717216cd7a02ba813afa58cb02a10c509ab7",
+  "prompts": {},
+  "sessions": {
+    "s_8c7c13500c0009": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a5c7-d3c8-7252-b417-cd54c02a5219",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    }
+  }
+}
