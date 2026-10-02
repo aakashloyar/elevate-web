@@ -14,11 +14,6 @@ export default function SubmissionsPage() {
   const router = useRouter();
   const columns: DataTableColumn<SubmissionSummary>[] = [
     {
-      key: "submission",
-      header: "Submission",
-      render: (submission) => <TruncatedText className="font-semibold hover:text-[var(--accent)]">{submission.id}</TruncatedText>,
-    },
-    {
       key: "assessment",
       header: "Assessment",
       render: (submission) => <TruncatedText>{submission.assessment_title || submission.assessment_id}</TruncatedText>,
