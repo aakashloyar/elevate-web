@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AppShell, Button, Field, inputClass, Panel, PageTitle } from "@/components/ui";
+import { getAuthenticatedUserId } from "@/lib/auth";
 import { assessmentsApi, problemsApi } from "@/lib/api/services";
 import type { Difficulty, ProblemOption, ProblemType } from "@/lib/api/types";
 
@@ -23,7 +24,6 @@ export default function CreateProblemPage() {
   const [statement, setStatement] = useState("");
   const [type, setType] = useState<ProblemType>("single");
   const [difficulty, setDifficulty] = useState<Difficulty>("easy");
-  const [createdBy, setCreatedBy] = useState("019fd16d-8296-7039-949f-65044c31d28f");
   const [topics, setTopics] = useState("");
   const [options, setOptions] = useState<ProblemOption[]>(defaultOptions);
 
@@ -45,7 +45,7 @@ export default function CreateProblemPage() {
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     createProblem.mutate({
-      created_by: createdBy,
+      created_by: getAuthenticatedUserId(),
       title,
       statement,
       type,
@@ -126,9 +126,6 @@ export default function CreateProblemPage() {
             )}
             <Field label="Topics">
               <input className={inputClass} value={topics} onChange={(event) => setTopics(event.target.value)} placeholder="algorithms, arrays, binary-search" />
-            </Field>
-            <Field label="Created by user ID">
-              <input className={inputClass} value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} required />
             </Field>
             <div className="flex gap-2">
               <Button disabled={createProblem.isPending || !optionsValid}>{createProblem.isPending ? "Creating..." : "Create problem"}</Button>

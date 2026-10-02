@@ -1,7 +1,16 @@
+"use client";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { ready, token, logout } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+  useEffect(() => { if (ready && !token && pathname !== "/login" && pathname !== "/register") router.replace("/login"); }, [pathname, ready, router, token]);
+  if (!ready || !token) return null;
   return (
     <div>
       <header className="border-b border-[var(--line)] bg-[var(--paper)]">
@@ -14,6 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NavLink href="/assessments">Assessments</NavLink>
             <NavLink href="/problems">Problems</NavLink>
             <NavLink href="/submissions">Submissions</NavLink>
+            <button type="button" onClick={() => { logout(); router.replace("/login"); }} className="cursor-pointer rounded px-3 py-2 text-[var(--muted)] hover:bg-[var(--accent-weak)] hover:text-[var(--accent)]">Logout</button>
           </nav>
         </div>
       </header>

@@ -1,4 +1,5 @@
 export const serviceUrls = {
+  auth: process.env.NEXT_PUBLIC_AUTH_SERVICE_URL ?? "http://localhost:8088",
   user: process.env.NEXT_PUBLIC_USER_SERVICE_URL ?? "http://localhost:8081",
   assessment: process.env.NEXT_PUBLIC_ASSESSMENT_SERVICE_URL ?? "http://localhost:8082",
   problem: process.env.NEXT_PUBLIC_PROBLEM_SERVICE_URL ?? "http://localhost:8083",

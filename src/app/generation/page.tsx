@@ -5,13 +5,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { AppShell, Button, Field, inputClass, Panel, PageTitle } from "@/components/ui";
 import { StatusBadge } from "@/components/status";
+import { getAuthenticatedUserId } from "@/lib/auth";
 import { generationApi } from "@/lib/api/services";
 import type { Difficulty } from "@/lib/api/types";
 
 function GenerationContent() {
   const params = useSearchParams();
   const [assessmentId, setAssessmentId] = useState(params.get("assessmentId") ?? "f207db6a-c9bc-4743-96f3-56028ec6cfa2");
-  const [userId, setUserId] = useState("019fd16d-8296-7039-949f-65044c31d28f");
   const [level, setLevel] = useState<Difficulty>("medium");
   const [description, setDescription] = useState("Generate NCERT-style conceptual questions.");
   const [singleCount, setSingleCount] = useState("5");
@@ -34,7 +34,7 @@ function GenerationContent() {
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     createJob.mutate({
-      user_id: userId,
+      user_id: getAuthenticatedUserId(),
       assessment_id: assessmentId,
       document_id: null,
       single_correct_count: Number(singleCount),
@@ -52,9 +52,6 @@ function GenerationContent() {
         <form onSubmit={onSubmit} className="grid gap-3">
           <Field label="Assessment ID">
             <input className={inputClass} value={assessmentId} onChange={(event) => setAssessmentId(event.target.value)} required />
-          </Field>
-          <Field label="User ID">
-            <input className={inputClass} value={userId} onChange={(event) => setUserId(event.target.value)} required />
           </Field>
           <Field label="Level">
             <select className={inputClass} value={level} onChange={(event) => setLevel(event.target.value as Difficulty)}>

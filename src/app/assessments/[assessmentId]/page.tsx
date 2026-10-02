@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, EmptyState, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
+import { getAuthenticatedUserId } from "@/lib/auth";
 import { assessmentsApi, generationApi, problemsApi, submissionsApi } from "@/lib/api/services";
 import type { AssessmentMarkingScheme, Difficulty, MarkingSchemeMarks, Problem, ProblemOption, ProblemType } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/utils";
@@ -105,7 +106,7 @@ export default function AssessmentDetailPage() {
     mutationFn: () =>
       submissionsApi.create({
         assessment_id: assessmentId,
-        user_id: assessment?.created_by,
+        user_id: getAuthenticatedUserId(),
         duration_seconds: Number(submissionDuration),
         marking_scheme: submissionMarkingScheme,
       }),
@@ -131,7 +132,7 @@ export default function AssessmentDetailPage() {
             <Button
               type="button"
               className="px-3 py-1.5 text-sm"
-              disabled={createSubmission.isPending || !assessment?.created_by || !assessment?.duration_seconds}
+              disabled={createSubmission.isPending || !assessment?.duration_seconds}
               onClick={() => {
                 setSubmissionDuration(String(assessment?.duration_seconds ?? ""));
                 setSubmissionMarkingScheme(markingSchemeQuery.data ?? defaultMarkingScheme);
@@ -552,14 +553,11 @@ function AttachedProblemCard({ problem }: { problem: Problem }) {
 
 function ManualProblemCard({
   assessmentId,
-  createdBy,
   onAdded,
 }: {
   assessmentId: string;
-  createdBy?: string;
   onAdded: () => void;
 }) {
-  const [creatorId, setCreatorId] = useState(createdBy || "019fd16d-8296-7039-949f-65044c31d28f");
   const [title, setTitle] = useState("What is the time complexity of binary search?");
   const [statement, setStatement] = useState("Given a sorted array of n elements, what is the time complexity of searching for an element using binary search?");
   const [type, setType] = useState<ProblemType>("single");
@@ -583,7 +581,7 @@ function ManualProblemCard({
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     addProblem.mutate({
-      created_by: creatorId,
+      created_by: getAuthenticatedUserId(),
       title,
       statement,
       type,
@@ -613,9 +611,6 @@ function ManualProblemCard({
   return (
     <Panel title="Add one manual problem">
       <form onSubmit={onSubmit} className="grid gap-3">
-        <Field label="Created by user ID">
-          <input className={inputClass} value={creatorId} onChange={(event) => setCreatorId(event.target.value)} required />
-        </Field>
         <Field label="Title">
           <input className={inputClass} value={title} onChange={(event) => setTitle(event.target.value)} required />
         </Field>
@@ -665,14 +660,11 @@ function ManualProblemCard({
 
 function AiGenerationCard({
   assessmentId,
-  createdBy,
   onCompleted,
 }: {
   assessmentId: string;
-  createdBy?: string;
   onCompleted: () => void;
 }) {
-  const [userId, setUserId] = useState(createdBy || "019fd16d-8296-7039-949f-65044c31d28f");
   const [level, setLevel] = useState<Difficulty>("medium");
   const [description, setDescription] = useState("Generate NCERT-style conceptual questions.");
   const [singleCount, setSingleCount] = useState("5");
@@ -704,7 +696,7 @@ function AiGenerationCard({
   function onSubmit(event: FormEvent) {
     event.preventDefault();
     createJob.mutate({
-      user_id: userId,
+      user_id: getAuthenticatedUserId(),
       assessment_id: assessmentId,
       document_id: null,
       single_correct_count: Number(singleCount),
@@ -719,9 +711,6 @@ function AiGenerationCard({
   return (
     <Panel title="Generate problems with AI">
       <form onSubmit={onSubmit} className="grid gap-3">
-        <Field label="User ID">
-          <input className={inputClass} value={userId} onChange={(event) => setUserId(event.target.value)} required />
-        </Field>
         <Field label="Level">
           <select className={inputClass} value={level} onChange={(event) => setLevel(event.target.value as Difficulty)}>
             <option value="easy">easy</option>

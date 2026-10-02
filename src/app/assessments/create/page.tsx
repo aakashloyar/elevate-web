@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { AppShell, Button, Field, inputClass, Panel, PageTitle } from "@/components/ui";
+import { getAuthenticatedUserId } from "@/lib/auth";
 import { assessmentsApi } from "@/lib/api/services";
 
 export default function CreateAssessmentPage() {
@@ -12,7 +13,6 @@ export default function CreateAssessmentPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [durationSeconds, setDurationSeconds] = useState("5400");
-  const [createdBy, setCreatedBy] = useState("01a09427-5792-7192-a6b6-d1fce684767d");
 
   const createAssessment = useMutation({
     mutationFn: assessmentsApi.create,
@@ -25,7 +25,7 @@ export default function CreateAssessmentPage() {
       title,
       description,
       duration_seconds: Number(durationSeconds),
-      created_by: createdBy,
+      created_by: getAuthenticatedUserId(),
     });
   }
 
@@ -48,9 +48,6 @@ export default function CreateAssessmentPage() {
             </Field>
             <Field label="Duration seconds">
               <input className={inputClass} type="number" value={durationSeconds} onChange={(event) => setDurationSeconds(event.target.value)} min={1} required />
-            </Field>
-            <Field label="Created by user ID">
-              <input className={inputClass} value={createdBy} onChange={(event) => setCreatedBy(event.target.value)} required />
             </Field>
             <div className="flex gap-2">
               <Button disabled={createAssessment.isPending}>{createAssessment.isPending ? "Creating..." : "Create assessment"}</Button>

@@ -19,15 +19,18 @@ export async function request<T>(baseURL: string, path: string, options: Request
     }
   }
 
+  const token = typeof window !== "undefined" ? window.localStorage.getItem("elevate_access_token") : null;
   const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") window.localStorage.removeItem("elevate_access_token");
     const message = await response.text();
     throw new ApiError(message || response.statusText, response.status);
   }
