@@ -1,0 +1,43 @@
+src/app/problems/create/page.tsx
+  s_8c7c13500c0009::t_d8e6aa505d0570 8,48
+src/app/generation/page.tsx
+  s_8c7c13500c0009::t_d8e6aa505d0570 8,37
+src/components/providers.tsx
+  s_8c7c13500c0009::t_31c7c78334bc03 5,21
+src/components/ui.tsx
+  s_8c7c13500c0009::t_07aa5e089caa5a 1,3,6,9-11,13,26
+  s_8c7c13500c0009::t_c1a8edea6f5130 4,12
+src/lib/api/http.ts
+  s_8c7c13500c0009::t_31c7c78334bc03 22,27,33
+src/app/assessments/[assessmentId]/page.tsx
+  s_8c7c13500c0009::t_d8e6aa505d0570 9,109,135,584,699
+src/app/register/page.tsx
+  s_8c7c13500c0009::t_3f5a6a08f372d7 1-3
+src/app/login/page.tsx
+  s_8c7c13500c0009::t_959ed329067693 1-3
+src/lib/api/config.ts
+  s_8c7c13500c0009::t_31c7c78334bc03 2
+src/lib/auth.tsx
+  s_8c7c13500c0009::t_8315284f11acb4 16-18
+  s_8c7c13500c0009::t_376b20227f198d 1-4,6-8,24-26
+  s_8c7c13500c0009::t_0c517504543e88 5
+  s_8c7c13500c0009::t_d8e6aa505d0570 9-15,19-23
+src/app/assessments/create/page.tsx
+  s_8c7c13500c0009::t_d8e6aa505d0570 8,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d94b243f0bf50ab0e9345d340eb90b7bfa3c6c29",
+  "prompts": {},
+  "sessions": {
+    "s_8c7c13500c0009": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a0a5c7-d3c8-7252-b417-cd54c02a5219",
+        "model": "gpt-5.6-luna"
+      },
+      "human_author": "aakashloyar <aakashloyar@gmail.com>"
+    }
+  }
+}
