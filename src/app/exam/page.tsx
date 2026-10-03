@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { AppShell, Badge, Button, EmptyState, Panel, PageTitle } from "@/components/ui";
-import { StatusBadge } from "@/components/status";
+import { DifficultyBadge, StatusBadge } from "@/components/status";
 import { runnerApi, submissionsApi } from "@/lib/api/services";
 import type { ProblemView } from "@/lib/api/types";
+import { formatDuration } from "@/lib/utils";
 
 const PROBLEMS_PAGE_SIZE = 12;
 
@@ -161,7 +162,7 @@ export default function ExamPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Time remaining</p>
             <p className={`mt-1 font-mono text-3xl font-bold tracking-wider ${remainingSeconds !== null && remainingSeconds <= 60 ? "text-red-700" : "text-[var(--accent)]"}`} aria-live="polite">
-              {remainingSeconds !== null ? formatRemainingTime(remainingSeconds) : "—"}
+              {formatDuration(remainingSeconds)}
             </p>
           </div>
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl shadow-sm" aria-hidden="true">⏱</div>
@@ -193,7 +194,7 @@ export default function ExamPage() {
             <div>
               <div className="mb-3 flex gap-2">
                 <Badge tone="blue">{current.type}</Badge>
-                <Badge>{current.difficulty}</Badge>
+                <DifficultyBadge value={current.difficulty} />
               </div>
               <p className="mb-5 whitespace-pre-wrap leading-7">{current.statement}</p>
               {current.type === "numerical" ? (
@@ -302,11 +303,4 @@ export default function ExamPage() {
 
 function normalizeProblemsPage(page: { problems: ProblemView[] } | ProblemView[]): ProblemView[] {
   return Array.isArray(page) ? page : page.problems;
-}
-
-function formatRemainingTime(totalSeconds: number): string {
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }

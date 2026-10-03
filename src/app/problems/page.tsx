@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { DataTable, type DataTableColumn } from "@/components/data-table";
+import { DifficultyBadge } from "@/components/status";
 import { AppShell, Badge, Button, PageTitle, TruncatedText } from "@/components/ui";
 import { problemsApi } from "@/lib/api/services";
 import type { Problem } from "@/lib/api/types";
@@ -33,7 +34,7 @@ export default function ProblemsPage() {
     {
       key: "difficulty",
       header: "Difficulty",
-      render: (problem) => <Badge>{problem.difficulty}</Badge>,
+      render: (problem) => <DifficultyBadge value={problem.difficulty} />,
     },
     {
       key: "created_by",

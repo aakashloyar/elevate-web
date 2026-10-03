@@ -6,7 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/data-table";
 import { AppShell, Button, PageTitle, TruncatedText } from "@/components/ui";
 import { assessmentsApi } from "@/lib/api/services";
 import type { Assessment } from "@/lib/api/types";
-import { formatDateTime, minutesFromSeconds } from "@/lib/utils";
+import { formatDateTime, formatDuration } from "@/lib/utils";
 
 const pageSize = 10;
 
@@ -40,7 +40,7 @@ export default function AssessmentsPage() {
     {
       key: "duration",
       header: "Duration",
-      render: (assessment) => minutesFromSeconds(assessment.duration_seconds),
+      render: (assessment) => formatDuration(assessment.duration_seconds),
     },
   ];
 

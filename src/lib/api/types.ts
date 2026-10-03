@@ -130,10 +130,12 @@ export type GenerationJob = {
   numerical_count?: number;
   document_id?: string | null;
   assessment_id?: string | null;
+  assessment_title?: string;
   level?: Difficulty;
   description?: string;
   status: GenerationStatus;
   topic_ids?: string[];
+  generated_problem_count?: number;
   created_at?: string;
   updated_at?: string;
 };

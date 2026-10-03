@@ -6,7 +6,7 @@ import { StatusBadge } from "@/components/status";
 import { AppShell, PageTitle, TruncatedText } from "@/components/ui";
 import { submissionsApi } from "@/lib/api/services";
 import type { SubmissionSummary } from "@/lib/api/types";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatDuration } from "@/lib/utils";
 
 const pageSize = 10;
 
@@ -31,7 +31,7 @@ export default function SubmissionsPage() {
     {
       key: "duration",
       header: "Duration",
-      render: (submission) => `${submission.duration_seconds}s`,
+      render: (submission) => formatDuration(submission.duration_seconds),
     },
     {
       key: "created",

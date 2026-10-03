@@ -14,7 +14,12 @@ export function formatDateTime(value?: string | null) {
   }).format(date);
 }
 
-export function minutesFromSeconds(seconds?: number | null) {
-  if (!seconds) return "—";
-  return `${Math.round(seconds / 60)} min`;
+export function formatDuration(seconds?: number | null) {
+  if (seconds === undefined || seconds === null || !Number.isFinite(seconds) || seconds < 0) return "—";
+  const totalSeconds = Math.floor(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${minutes} min ${String(remainingSeconds).padStart(2, "0")} sec`;
 }
+
+export const minutesFromSeconds = formatDuration;

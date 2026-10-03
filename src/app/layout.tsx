@@ -5,6 +5,9 @@ import { Providers } from "@/components/providers";
 export const metadata: Metadata = {
   title: "Elevate",
   description: "Simple assessment and exam runner interface.",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({

@@ -4,12 +4,12 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
-import { StatusBadge } from "@/components/status";
+import { DifficultyBadge, StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, EmptyState, Field, inputClass, Panel, PageTitle, TruncatedText } from "@/components/ui";
 import { getAuthenticatedUserId } from "@/lib/auth";
 import { assessmentsApi, generationApi, problemsApi, submissionsApi } from "@/lib/api/services";
 import type { AssessmentMarkingScheme, Difficulty, MarkingSchemeMarks, Problem, ProblemOption, ProblemType } from "@/lib/api/types";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatDuration } from "@/lib/utils";
 
 const defaultOptions = [
   { text: "O(1)", is_correct: false },
@@ -149,9 +149,9 @@ export default function AssessmentDetailPage() {
               <p className="text-sm text-[var(--danger)]">{assessmentQuery.error.message}</p>
             ) : assessment ? (
               <div className="grid gap-3 text-sm md:grid-cols-2">
-                <Info label="Assessment ID" value={assessment.id} />
-                <Info label="Created by" value={assessment.created_by || "—"} />
-                <Info label="Duration" value={`${assessment.duration_seconds ?? 0} seconds`} />
+                <Info label="Assessment" value={assessment.title || "—"} />
+                <Info label="Created by" value={assessment.created_by_name || "—"} />
+                <Info label="Duration" value={formatDuration(assessment.duration_seconds)} />
                 <Info
                   label="Problems"
                   value={
@@ -196,12 +196,14 @@ export default function AssessmentDetailPage() {
               </div>
             }
           >
-            {!hasLoadedProblemIds || problemsQuery.isPending ? (
+            {!hasLoadedProblemIds || (attachedProblemIds.length > 0 && problemsQuery.isPending) ? (
               <p className="text-sm text-[var(--muted)]">Loading problems...</p>
             ) : problemIdsError || problemsQuery.error ? (
               <p className="text-sm text-[var(--danger)]">{problemIdsError?.message ?? problemsQuery.error?.message}</p>
             ) : attachedProblemIds.length === 0 ? (
-              <EmptyState title="No problems attached" description="Use the Add problem button to create and attach a problem to this assessment." />
+              <EmptyState title="No problems found" description="Use the Add problem button to create and attach a problem to this assessment." />
+            ) : problemsQuery.isSuccess && loadedProblems.length === 0 ? (
+              <EmptyState title="No problems found" description="The assessment has no available problem details." />
             ) : (
               <div>
                 <div>
@@ -524,7 +526,7 @@ function AttachedProblemCard({ problem }: { problem: Problem }) {
         <h3 className="text-lg font-semibold">{problem.title || problem.id}</h3>
         <div className="flex items-center gap-2">
           <Badge tone="blue">{problem.type}</Badge>
-          <Badge>{problem.difficulty}</Badge>
+          <DifficultyBadge value={problem.difficulty} />
         </div>
       </div>
       <p className="mt-3 whitespace-pre-wrap leading-7 text-[var(--muted)]">{problem.statement || "No statement"}</p>

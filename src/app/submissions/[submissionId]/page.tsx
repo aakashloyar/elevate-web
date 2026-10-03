@@ -7,7 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StatusBadge } from "@/components/status";
 import { AppShell, Badge, Button, Panel, PageTitle } from "@/components/ui";
 import { evaluationApi, submissionsApi } from "@/lib/api/services";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatDuration } from "@/lib/utils";
 
 const QUESTION_SELECTOR_PAGE_SIZE = 12;
 
@@ -97,7 +97,7 @@ export default function SubmissionDetailPage() {
                     <div>
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">Time remaining</p>
                       <p className="mt-1 font-mono text-3xl font-bold tracking-wider text-[var(--accent)]" aria-live="polite">
-                        {formatTimer(remainingSeconds)}
+                        {formatDuration(remainingSeconds)}
                       </p>
                       <p className="mt-1 text-xs text-[var(--muted)]">Your answers are saved automatically while you work.</p>
                     </div>
@@ -277,21 +277,6 @@ function Info({ label, value }: { label: string; value?: string | null }) {
       <p className="mt-1 break-all font-medium">{value || "—"}</p>
     </div>
   );
-}
-
-function formatDuration(seconds?: number | null) {
-  if (seconds === undefined || seconds === null || seconds < 0) return "—";
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
-}
-
-function formatTimer(seconds?: number | null) {
-  if (seconds === undefined || seconds === null || seconds < 0) return "—";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
 function timeTakenSeconds(start?: string | null, end?: string | null) {

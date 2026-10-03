@@ -142,6 +142,11 @@ export const runnerApi = {
 };
 
 export const generationApi = {
+  list: (query?: Record<string, string | number | undefined>) =>
+    request<{ generation_jobs: GenerationJob[] }>(serviceUrls.generation, "/generation-jobs", {
+      query,
+      cache: "no-store",
+    }),
   createJob: (body: Record<string, unknown>) =>
     request<{ job_id: string; status: GenerationJob["status"] }>(
       serviceUrls.generation,

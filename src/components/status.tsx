@@ -13,3 +13,9 @@ export function StatusBadge({ value }: { value: string }) {
 
   return <Badge tone={tone}>{value.replaceAll("_", " ")}</Badge>;
 }
+
+export function DifficultyBadge({ value }: { value?: string | null }) {
+  const difficulty = value?.toLowerCase();
+  const tone = difficulty === "easy" ? "green" : difficulty === "hard" ? "red" : "yellow";
+  return <Badge tone={value ? tone : "neutral"}>{value || "—"}</Badge>;
+}
